@@ -1,0 +1,6 @@
+/target
+/indices
+/data
+/logs
+.todo
+flamegraph.svg

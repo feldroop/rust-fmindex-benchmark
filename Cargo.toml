@@ -1,0 +1,23 @@
+[package]
+name = "rust-fmindex-benchmark"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rayon = "1.11"
+windows = { version = "0.62", features = [
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }
+clap = { version = "4.5", features = ["derive"] }
+log = "0.4"
+fern = "0.7"
+humantime = "2"
+
+genedex = { version = "0.1.0", path = "../genedex", features = ["savefile"] }
+savefile = "0.19"
+
+bio = "2.3"
+
+[profile.release]
+debug = true
