@@ -101,7 +101,7 @@ pub fn bio(args: Args) {
             sampled_suffix_array.occ(),
         );
 
-        let count = match index.backward_search([1, 2, 3, 4].iter()) {
+        let count = match index.backward_search(b"ACGT".iter()) {
             BackwardSearchResult::Complete(interval) => interval.upper - interval.lower,
             BackwardSearchResult::Partial(..) => 0,
             BackwardSearchResult::Absent => 0,
