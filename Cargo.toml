@@ -12,12 +12,19 @@ windows = { version = "0.62", features = [
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
-humantime = "2"
 
-genedex = { version = "0.1.0", path = "../genedex", features = ["savefile"] }
-savefile = "0.19"
+genedex = { version = "0.1.0", path = "../genedex" }
 
 bio = "2.3"
+serde = "1"
+bincode = { version = "2", features = ["serde"] }
 
-[profile.release]
-debug = true
+awry = "0.3"
+
+fm-index = "0.3"
+
+sview-fmindex = { version = "0.1", features = ["fastbwt"] }
+lt-fm-index = { version = "0.7", features = ["fastbwt"] }
+
+# [profile.release]
+# debug = true
