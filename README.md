@@ -13,7 +13,7 @@ Libraries were gathered from [crates.io](crates.io) searches. The library [`lt-f
 
 | **Library** | **Good construction memory usage** | **Multiple texts** |  **Disk I/O** | **Multithreaded construction** | 
 | ----------- | :-------------: | :-------------: | :-------------: | :-------------: | 
-| [`awry`]          | ❌ (18x) | ✅ | ⚠️ | ❌ |
+| [`awry`]          | ❌ (18x) | ✅ | ⚠️ | ✅ (unsure) |
 | [`fm-index`]      | ❌ (34x) | ✅ | ❌ | ❌ |
 | [`genedex`]       | ✅ (6x/10x) | ✅ | ✅ | ✅ |
 | [`rust-bio`]      | ❌ (25x) | ❌  | ⚠️ | ❌ |
