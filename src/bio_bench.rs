@@ -3,6 +3,9 @@ use log::info;
 use std::fs::File;
 
 // serialization needs to be tested, I'm unsure about rank transformation
+
+// Large package of many algorithms and data structures. The API is the most complicated one,
+// because individual parts of the index must be constructed by hand. No multitext support.
 pub fn bio(args: Args) {
     use bio::alphabets;
     use bio::data_structures::bwt;

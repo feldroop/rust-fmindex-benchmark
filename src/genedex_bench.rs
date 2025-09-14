@@ -1,9 +1,9 @@
 use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
 use genedex::text_with_rank_support::Block;
-use genedex::{FmIndexConfig, IndexStorage, LibsaisOutputElement};
+use genedex::{FmIndexConfig, IndexStorage};
 use log::info;
 
-pub fn genedex<I: IndexStorage + LibsaisOutputElement, B: Block>(args: Args) {
+pub fn genedex<I: IndexStorage, B: Block>(args: Args) {
     use genedex::{FmIndex, alphabet};
 
     let index_filepath = format!(

@@ -2,11 +2,13 @@ use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_text
 use log::info;
 use std::fs::File;
 
+// Based on [`lt-fm-index`], but improved memory usage during construction and after.
+// The `mmap` support is a nice idea, but probably only relevant for few applications.
 pub fn sview_fmindex<V: sview_fmindex::blocks::Vector>(args: Args) {
     use sview_fmindex::build_config::{LookupTableConfig, SuffixArrayConfig};
 
     let index_filepath = format!(
-        "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.savefile",
+        "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.sview_fmindex",
         args.library.to_string(),
         args.suffix_array_sampling_rate,
         args.depth_of_lookup_table,
@@ -85,11 +87,13 @@ pub fn sview_fmindex<V: sview_fmindex::blocks::Vector>(args: Args) {
     }
 }
 
+// No multitext support. Large index and problematic construction memory usage.
+// Excluded from benchmark, because [`sview-fmindex`] seems to be the successor version.
 pub fn lt_fmindex<V: lt_fm_index::blocks::Vector>(args: Args) {
     use lt_fm_index::blocks::Block3;
 
     let index_filepath = format!(
-        "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.savefile",
+        "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.lt_fmindex",
         args.library.to_string(),
         args.suffix_array_sampling_rate,
         args.depth_of_lookup_table,

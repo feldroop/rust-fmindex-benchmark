@@ -1,6 +1,7 @@
 use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
 use log::info;
 
+// Supports multiple different FM-Index variants.
 pub fn fmindex(args: Args) {
     use fm_index::Search;
 

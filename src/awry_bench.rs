@@ -3,14 +3,16 @@ use log::info;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-// max_query_len is special
+// I don't fully understand the requirements for a temporary suffix array file.
+// `&String` as input for search functions is not idiomatic Rust. I believe it should be `&[u8]` in this case.
+// Applies many smart tricks. Writes diagnostics to stdout, which libraries usually don't do.
 pub fn awry(args: Args) {
     use awry::{alphabet, fm_index};
 
     let input_texts_path = PathBuf::from(format!(
         "data/input_texts_{}_records.fasta",
         args.num_text_records
-            .map_or("all".to_string(), |l| l.to_string())
+            .map_or("all".to_string(), |n| n.to_string())
     ));
 
     // prepare the input data file. this is only necessary because of the benchmark setup.
