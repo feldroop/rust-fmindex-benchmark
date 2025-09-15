@@ -1,5 +1,5 @@
 use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
-use genedex::text_with_rank_support::Block;
+use genedex::block::Block;
 use genedex::{FmIndexConfig, IndexStorage};
 use log::info;
 
@@ -24,7 +24,7 @@ pub fn genedex<I: IndexStorage, B: Block>(args: Args) {
         FmIndexConfig::<I, B>::new()
             .lookup_table_depth(args.depth_of_lookup_table)
             .suffix_array_sampling_rate(args.suffix_array_sampling_rate)
-            .construct(texts, alphabet::ascii_dna_with_n())
+            .construct_index(texts, alphabet::ascii_dna_with_n())
     };
 
     print_after_build_metrics(start);

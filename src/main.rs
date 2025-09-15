@@ -5,7 +5,7 @@ mod genedex_bench;
 mod lt_and_sview_fmindex_bench;
 
 use clap::{Parser, ValueEnum};
-use genedex::text_with_rank_support::{Block64, Block512};
+use genedex::block::{Block64, Block512};
 use log::info;
 use std::path::PathBuf;
 

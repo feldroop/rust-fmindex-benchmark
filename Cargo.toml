@@ -5,12 +5,11 @@ edition = "2024"
 
 [dependencies]
 rayon = "1.11"
-
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
 
-genedex = { version = "0.1.0", path = "../genedex" }
+genedex = "0.1.0"
 
 bio = "2.3"
 serde = "1"
@@ -31,6 +30,3 @@ windows = { version = "0.62", features = [
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-# [profile.release]
-# debug = true

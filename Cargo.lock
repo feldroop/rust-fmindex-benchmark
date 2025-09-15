@@ -678,6 +678,8 @@ dependencies = [
 [[package]]
 name = "genedex"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a6102abdfd5e798ebab1dae8d827989befaac27ad3ab7bc3ebbe06e1128a316"
 dependencies = [
  "bitvec",
  "bytemuck",
