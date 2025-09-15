@@ -13,11 +13,7 @@ use std::path::PathBuf;
 struct Args {
     library: Library,
 
-    #[arg(
-        short,
-        long,
-        default_value = "data/GCF_000001405.40_GRCh38.p14_genomic.fna"
-    )]
+    #[arg(short, long, default_value = "data/hg38.fna")]
     input_texts_path: PathBuf,
 
     #[arg(short, long)]
@@ -32,7 +28,7 @@ struct Args {
     #[arg(short = 't', long, default_value_t = 1)]
     build_thread_count: u16,
 
-    #[arg(short, long, default_value = "data/ERR15362081.fastq")]
+    #[arg(short, long, default_value = "data/reads.fastq")]
     queries_path: PathBuf,
 
     #[arg(short = 'm', long)]
