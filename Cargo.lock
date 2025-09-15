@@ -1439,6 +1439,7 @@ dependencies = [
  "fern",
  "fm-index",
  "genedex",
+ "libc",
  "log",
  "lt-fm-index",
  "rayon",

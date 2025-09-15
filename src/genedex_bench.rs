@@ -42,20 +42,23 @@ pub fn genedex<I: IndexStorage, B: Block>(args: Args) {
     }
 
     info!(
-        "Search queries time: {} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_secs()
+        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
+        start.elapsed().as_millis() as f64 / 1_000.0
     );
 
     if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
         let start = std::time::Instant::now();
         index.save_to_file(&index_filepath).unwrap();
-        info!("Write to disk time: {} seconds", start.elapsed().as_secs());
+        info!(
+            "Write to disk time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
+        );
 
         let start = std::time::Instant::now();
         let index = FmIndex::<I, B>::load_from_file(&index_filepath).unwrap();
         info!(
-            "Load from disk time: {} seconds (dummy: {})",
-            start.elapsed().as_secs(),
+            "Load from disk time: {:.2} seconds (dummy: {})",
+            start.elapsed().as_millis() as f64 / 1_000.0,
             index.count(b"ACGT")
         );
     }

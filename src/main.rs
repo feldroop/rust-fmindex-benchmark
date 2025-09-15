@@ -8,8 +8,6 @@ use clap::{Parser, ValueEnum};
 use genedex::text_with_rank_support::{Block64, Block512};
 use log::info;
 use std::path::PathBuf;
-use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
-use windows::Win32::System::Threading::GetCurrentProcess;
 
 #[derive(Debug, Parser, Clone)]
 struct Args {
@@ -159,7 +157,10 @@ fn read_texts(args: &Args) -> Vec<Vec<u8>> {
     transfrom_seqs(&mut seqs, "texts", b'N', args.verbose);
 
     if args.verbose {
-        info!("Texts reading time: {} seconds", start.elapsed().as_secs());
+        info!(
+            "Texts reading time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
+        );
     }
 
     seqs
@@ -190,8 +191,8 @@ fn read_queries(args: &Args) -> Vec<Vec<u8>> {
 
     if args.verbose {
         info!(
-            "Queries reading time: {} seconds",
-            start.elapsed().as_secs()
+            "Queries reading time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
         );
     }
 
@@ -234,7 +235,10 @@ fn transfrom_seqs(seqs: &mut Vec<Vec<u8>>, name: &str, replacement_symbol: u8, v
 }
 
 fn print_after_build_metrics(start: std::time::Instant) {
-    info!("Build/load time: {} seconds", start.elapsed().as_secs());
+    info!(
+        "Build/load time: {:.2} seconds",
+        start.elapsed().as_millis() as f64 / 1_000.0
+    );
 
     info!(
         "Peak memory usage after building/loading: {:.1} MB",
@@ -246,7 +250,12 @@ fn print_after_build_metrics(start: std::time::Instant) {
     );
 }
 
-fn get_memory_info() -> PROCESS_MEMORY_COUNTERS {
+// ---------- just for fun, I implemented the memory usage functionaliy by hand ----------
+#[cfg(windows)]
+fn get_memory_info() -> windows::Win32::System::ProcessStatus::PROCESS_MEMORY_COUNTERS {
+    use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
+    use windows::Win32::System::Threading::GetCurrentProcess;
+
     let handle = unsafe { GetCurrentProcess() };
     let mut memory_info = PROCESS_MEMORY_COUNTERS::default();
     let ptr: *mut PROCESS_MEMORY_COUNTERS = &mut memory_info;
@@ -257,12 +266,33 @@ fn get_memory_info() -> PROCESS_MEMORY_COUNTERS {
     memory_info
 }
 
+#[cfg(windows)]
 fn process_peak_memory_usage_mb() -> f64 {
     get_memory_info().PeakWorkingSetSize as f64 / 1_000_000.0
 }
 
+#[cfg(windows)]
 fn process_current_memory_usage_mb() -> f64 {
     get_memory_info().WorkingSetSize as f64 / 1_000_000.0
+}
+
+#[cfg(unix)]
+fn process_peak_memory_usage_mb() -> f64 {
+    let mut memory_info: libc::rusage = unsafe { std::mem::zeroed() };
+    let ret = libc::getrusage(libc::RUSAGE_SELF, (&mut memory_info).as_mut_ptr());
+    assert!(ret == 0);
+
+    memory_info.ru_maxrss as f64 / 1_000.0
+}
+
+#[cfg(unix)]
+fn process_current_memory_usage_mb() -> f64 {
+    let statm = fs::read_to_string("/proc/self/statm")?;
+    let fields: Vec<&str> = statm.split_whitespace().collect();
+
+    let num_pages = fields[0].parse::<u64>().unwrap();
+    let page_size = libc::sysconf(libc::_SC_PAGESIZE) as u64;
+    (num_pages * page_size) as f64 / 1_000_000.0
 }
 
 fn setup_logger(library: Library) -> Result<(), fern::InitError> {

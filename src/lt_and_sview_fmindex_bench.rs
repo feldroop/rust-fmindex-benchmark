@@ -66,22 +66,25 @@ pub fn sview_fmindex<V: sview_fmindex::blocks::Vector>(args: Args) {
     }
 
     info!(
-        "Search queries time: {} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_secs()
+        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
+        start.elapsed().as_millis() as f64 / 1_000.0
     );
 
     if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
         let start = std::time::Instant::now();
         std::fs::write(&index_filepath, blob).unwrap();
-        info!("Write to disk time: {} seconds", start.elapsed().as_secs());
+        info!(
+            "Write to disk time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
+        );
 
         let start = std::time::Instant::now();
         let blob = std::fs::read(&index_filepath).unwrap();
         let index =
             sview_fmindex::FmIndex::<u32, Block3<V>, EncodingTable>::load(&blob[..]).unwrap();
         info!(
-            "Load from disk time: {} seconds (dummy: {})",
-            start.elapsed().as_secs(),
+            "Load from disk time: {:.2} seconds (dummy: {})",
+            start.elapsed().as_millis() as f64 / 1_000.0,
             index.count(b"ACGT")
         );
     }
@@ -133,22 +136,25 @@ pub fn lt_fmindex<V: lt_fm_index::blocks::Vector>(args: Args) {
     }
 
     info!(
-        "Search queries time: {} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_secs()
+        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
+        start.elapsed().as_millis() as f64 / 1_000.0
     );
 
     if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
         let start = std::time::Instant::now();
         let file = File::create(&index_filepath).unwrap();
         index.save_to(file).unwrap();
-        info!("Write to disk time: {} seconds", start.elapsed().as_secs());
+        info!(
+            "Write to disk time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
+        );
 
         let start = std::time::Instant::now();
         let file = File::open(&index_filepath).unwrap();
         let index = lt_fm_index::LtFmIndex::<u32, Block3<V>>::load_from(file).unwrap();
         info!(
-            "Load from disk time: {} seconds (dummy: {})",
-            start.elapsed().as_secs(),
+            "Load from disk time: {:.2} seconds (dummy: {})",
+            start.elapsed().as_millis() as f64 / 1_000.0,
             index.count(b"ACGT")
         );
     }

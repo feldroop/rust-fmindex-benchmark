@@ -36,7 +36,7 @@ pub fn fmindex(args: Args) {
     }
 
     info!(
-        "Search queries time: {} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_secs()
+        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
+        start.elapsed().as_millis() as f64 / 1_000.0
     );
 }

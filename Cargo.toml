@@ -5,10 +5,7 @@ edition = "2024"
 
 [dependencies]
 rayon = "1.11"
-windows = { version = "0.62", features = [
-    "Win32_System_ProcessStatus",
-    "Win32_System_Threading",
-] }
+
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
@@ -25,6 +22,15 @@ fm-index = "0.3"
 
 sview-fmindex = { version = "0.1", features = ["fastbwt"] }
 lt-fm-index = { version = "0.7", features = ["fastbwt"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 # [profile.release]
 # debug = true
