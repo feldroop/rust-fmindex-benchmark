@@ -275,7 +275,8 @@ fn process_current_memory_usage_mb() -> f64 {
 #[cfg(unix)]
 fn process_peak_memory_usage_mb() -> f64 {
     let mut memory_info: libc::rusage = unsafe { std::mem::zeroed() };
-    let ret = libc::getrusage(libc::RUSAGE_SELF, (&mut memory_info).as_mut_ptr());
+    let ret =
+        unsafe { libc::getrusage(libc::RUSAGE_SELF, (&mut memory_info) as *mut libc::rusage) };
     assert!(ret == 0);
 
     memory_info.ru_maxrss as f64 / 1_000.0
@@ -283,11 +284,11 @@ fn process_peak_memory_usage_mb() -> f64 {
 
 #[cfg(unix)]
 fn process_current_memory_usage_mb() -> f64 {
-    let statm = fs::read_to_string("/proc/self/statm")?;
+    let statm = std::fs::read_to_string("/proc/self/statm").unwrap();
     let fields: Vec<&str> = statm.split_whitespace().collect();
 
     let num_pages = fields[0].parse::<u64>().unwrap();
-    let page_size = libc::sysconf(libc::_SC_PAGESIZE) as u64;
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as u64;
     (num_pages * page_size) as f64 / 1_000_000.0
 }
 
