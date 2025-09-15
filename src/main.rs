@@ -297,10 +297,7 @@ fn setup_logger(library: Library) -> Result<(), fern::InitError> {
         .format(|out, message, _| out.finish(format_args!("{}", message)))
         .level(log::LevelFilter::Info)
         .chain(std::io::stdout())
-        .chain(fern::log_file(format!(
-            "logs\\{}.txt",
-            library.to_string()
-        ))?)
+        .chain(fern::log_file(format!("logs/{}.txt", library.to_string()))?)
         .apply()?;
     Ok(())
 }
