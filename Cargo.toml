@@ -9,7 +9,7 @@ clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
 
-genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "5e9f4db6b43820ccc11faf81b38a1351dfcfd6cb" }
+genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "e91ad464bd40a59f7b104f84ee277ef3e5186b51" }
 
 bio = "2.3"
 serde = "1"
