@@ -660,7 +660,7 @@ dependencies = [
 [[package]]
 name = "genedex"
 version = "0.1.0"
-source = "git+https://github.com/feldroop/genedex?rev=e91ad464bd40a59f7b104f84ee277ef3e5186b51#e91ad464bd40a59f7b104f84ee277ef3e5186b51"
+source = "git+https://github.com/feldroop/genedex?rev=18b8f578d7cb2856deaf999a8ce54cfcfd440395#18b8f578d7cb2856deaf999a8ce54cfcfd440395"
 dependencies = [
  "bytemuck",
  "libsais",

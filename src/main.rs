@@ -40,6 +40,9 @@ struct Args {
     #[arg(short = 'o', long, default_value_t = SearchMode::Locate)]
     search_mode: SearchMode,
 
+    #[arg(short, long, default_value_t = 3)]
+    repeat_search: usize,
+
     #[arg(long)]
     skip_build: bool,
 
