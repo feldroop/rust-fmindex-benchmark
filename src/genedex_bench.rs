@@ -1,52 +1,43 @@
-use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
-use genedex::block::Block;
-use genedex::{FmIndexConfig, IndexStorage};
+use crate::common_interface::BenchmarkFmIndex;
+use crate::{Config, print_after_build_metrics, read_queries, read_texts};
+use genedex::block::{Block, BlockLayout};
+use genedex::{FmIndex, FmIndexConfig, IndexStorage, alphabet};
 use log::info;
 
-pub fn genedex<I: IndexStorage, B: Block>(args: Args) {
-    use genedex::{FmIndex, alphabet};
+pub type GenedexFMIndex<I, B, L> = FmIndex<I, B, L>;
 
-    let index_filepath = format!(
-        "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.savefile",
-        args.library.to_string(),
-        args.suffix_array_sampling_rate,
-        args.depth_of_lookup_table,
-        args.num_text_records
-            .map_or_else(|| "all".to_string(), |n| n.to_string())
-    );
+impl<I: IndexStorage, B: Block, L: BlockLayout> BenchmarkFmIndex for GenedexFMIndex<I, B, L> {
+    fn count_for_benchmark(&self, query: &[u8]) -> usize {
+        self.count(&query)
+    }
+
+    fn count_via_locate_for_benchmark(&self, query: &[u8]) -> usize {
+        self.locate(&query).count()
+    }
+}
+
+pub fn genedex<I: IndexStorage, B: Block, L: BlockLayout>(config: Config) {
+    let index_filepath = config.index_filepath();
 
     let start = std::time::Instant::now();
-    let index = if args.skip_build {
-        FmIndex::<I, B>::load_from_file(&index_filepath).unwrap()
+    let index = if config.skip_build {
+        FmIndex::<I, B, L>::load_from_file(&index_filepath).unwrap()
     } else {
-        let texts = read_texts(&args);
+        let texts = read_texts(&config);
 
-        FmIndexConfig::<I, B>::new()
-            .lookup_table_depth(args.depth_of_lookup_table)
-            .suffix_array_sampling_rate(args.suffix_array_sampling_rate)
+        FmIndexConfig::<I, B, L>::new()
+            .lookup_table_depth(config.depth_of_lookup_table)
+            .suffix_array_sampling_rate(config.suffix_array_sampling_rate)
             .construct_index(texts, alphabet::ascii_dna_with_n())
     };
 
     print_after_build_metrics(start);
 
-    let queries = read_queries(&args);
+    let queries = read_queries(&config);
 
-    let start = std::time::Instant::now();
-    let mut total_num_hits = 0;
+    index.run_search_benchmark(&config, &queries);
 
-    for query in queries {
-        total_num_hits += match args.search_mode {
-            SearchMode::Count => index.count(&query),
-            SearchMode::Locate => index.locate(&query).count(),
-        };
-    }
-
-    info!(
-        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_millis() as f64 / 1_000.0
-    );
-
-    if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
+    if !std::fs::exists(&index_filepath).unwrap() || config.force_write_and_load {
         let start = std::time::Instant::now();
         index.save_to_file(&index_filepath).unwrap();
         info!(

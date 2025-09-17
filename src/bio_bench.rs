@@ -1,26 +1,46 @@
-use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
+use crate::common_interface::BenchmarkFmIndex;
+use crate::{Config, print_after_build_metrics, read_queries, read_texts};
 use log::info;
 use std::fs::File;
 
-// serialization needs to be tested, I'm unsure about rank transformation
+use bio::alphabets;
+use bio::data_structures::bwt::{self, Occ};
+use bio::data_structures::fmindex::{BackwardSearchResult, FMIndex, FMIndexable};
+use bio::data_structures::suffix_array::{self, SampledSuffixArray, SuffixArray};
+
+pub type BioFmIndex<'a> = (
+    FMIndex<&'a Vec<u8>, &'a Vec<usize>, &'a Occ>,
+    SampledSuffixArray<&'a Vec<u8>, &'a Vec<usize>, &'a Occ>,
+);
+
+impl<'a> BenchmarkFmIndex for BioFmIndex<'a> {
+    fn count_for_benchmark(&self, query: &[u8]) -> usize {
+        // let query = rank_transform.transform(query);
+        match self.0.backward_search(query.iter()) {
+            BackwardSearchResult::Complete(interval) => interval.upper - interval.lower,
+            BackwardSearchResult::Partial(..) => 0,
+            BackwardSearchResult::Absent => 0,
+        }
+    }
+
+    fn count_via_locate_for_benchmark(&self, query: &[u8]) -> usize {
+        // let query = rank_transform.transform(query);
+        match self.0.backward_search(query.iter()) {
+            BackwardSearchResult::Complete(interval) => interval.occ(&self.1).len(),
+            BackwardSearchResult::Partial(..) => 0,
+            BackwardSearchResult::Absent => 0,
+        }
+    }
+}
+
+// I'm unsure about rank transformation
 
 // Large package of many algorithms and data structures. The API is the most complicated one,
 // because individual parts of the index must be constructed by hand. No multitext support.
-pub fn bio(args: Args) {
-    use bio::alphabets;
-    use bio::data_structures::bwt;
-    use bio::data_structures::fmindex::{BackwardSearchResult, FMIndex, FMIndexable};
-    use bio::data_structures::suffix_array::{self, SampledSuffixArray, SuffixArray};
+pub fn bio(config: Config) {
+    let index_filepath = config.index_filepath();
 
-    let index_filepath = format!(
-        "indices/{}_sampling_rate_{}_text_records_{}.bincode",
-        args.library.to_string(),
-        args.suffix_array_sampling_rate,
-        args.num_text_records
-            .map_or_else(|| "all".to_string(), |n| n.to_string())
-    );
-
-    let mut text: Vec<_> = read_texts(&args).into_iter().flatten().collect();
+    let mut text: Vec<_> = read_texts(&config).into_iter().flatten().collect();
     text.push(b'$');
 
     let start = std::time::Instant::now();
@@ -35,14 +55,14 @@ pub fn bio(args: Args) {
     let suffix_array = suffix_array::suffix_array(&text);
     let bwt = bwt::bwt(&text, &suffix_array);
     let less = bwt::less(&bwt, &alphabet);
-    let occ = bwt::Occ::new(
+    let occ = Occ::new(
         &bwt,
-        (args.suffix_array_sampling_rate * 6) as u32,
+        (config.suffix_array_sampling_rate * 6) as u32,
         &alphabet,
     );
 
     let sampled_suffix_array =
-        suffix_array.sample(&text, &bwt, &less, &occ, args.suffix_array_sampling_rate);
+        suffix_array.sample(&text, &bwt, &less, &occ, config.suffix_array_sampling_rate);
     drop(suffix_array);
     drop(text);
 
@@ -50,36 +70,14 @@ pub fn bio(args: Args) {
 
     print_after_build_metrics(start);
 
-    let queries = read_queries(&args);
+    let queries = read_queries(&config);
 
-    let start = std::time::Instant::now();
-    let mut total_num_hits = 0;
+    let tup = (index, sampled_suffix_array);
+    tup.run_search_benchmark(&config, &queries);
 
-    for query in queries {
-        // let query = rank_transform.transform(query);
+    let (_, sampled_suffix_array) = tup;
 
-        total_num_hits += match args.search_mode {
-            SearchMode::Count => match index.backward_search(query.iter()) {
-                BackwardSearchResult::Complete(interval) => interval.upper - interval.lower,
-                BackwardSearchResult::Partial(..) => 0,
-                BackwardSearchResult::Absent => 0,
-            },
-            SearchMode::Locate => match index.backward_search(query.iter()) {
-                BackwardSearchResult::Complete(interval) => {
-                    interval.occ(&sampled_suffix_array).len()
-                }
-                BackwardSearchResult::Partial(..) => 0,
-                BackwardSearchResult::Absent => 0,
-            },
-        };
-    }
-
-    info!(
-        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_millis() as f64 / 1_000.0
-    );
-
-    if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
+    if !std::fs::exists(&index_filepath).unwrap() || config.force_write_and_load {
         let start = std::time::Instant::now();
         let mut file = File::create(&index_filepath).unwrap();
         let config = bincode::config::standard().with_fixed_int_encoding();
@@ -88,7 +86,10 @@ pub fn bio(args: Args) {
         drop(occ);
         drop(less);
         drop(bwt);
-        info!("Write to disk time: {:.2} seconds", start.elapsed().as_millis() as f64 / 1_000.0);
+        info!(
+            "Write to disk time: {:.2} seconds",
+            start.elapsed().as_millis() as f64 / 1_000.0
+        );
 
         let start = std::time::Instant::now();
 

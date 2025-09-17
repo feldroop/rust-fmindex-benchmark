@@ -1,16 +1,17 @@
 mod awry_bench;
 mod bio_bench;
+mod common_interface;
 mod fmindex_bench;
 mod genedex_bench;
-mod lt_and_sview_fmindex_bench;
+mod sview_fmindex_bench;
 
 use clap::{Parser, ValueEnum};
-use genedex::block::{Block64, Block512};
+use genedex::block::{Block64, Block512, CondensedLayout, SeparatedLayout};
 use log::info;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser, Clone)]
-struct Args {
+struct Config {
     library: Library,
 
     #[arg(short, long, default_value = "data/hg38.fna")]
@@ -53,6 +54,20 @@ struct Args {
     verbose: bool,
 }
 
+impl Config {
+    fn index_filepath(&self) -> PathBuf {
+        PathBuf::from(format!(
+            "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.{}",
+            self.library.to_string(),
+            self.suffix_array_sampling_rate,
+            self.depth_of_lookup_table,
+            self.num_text_records
+                .map_or_else(|| "all".to_string(), |n| n.to_string()),
+            self.library.to_string()
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
 enum Library {
     GenedexI32B64,
@@ -64,8 +79,6 @@ enum Library {
     FmIndex,
     SviewFmIndex32,
     SviewFmIndex128,
-    LtFmIndex32,
-    LtFmIndex128,
 }
 
 impl ToString for Library {
@@ -80,8 +93,6 @@ impl ToString for Library {
             Library::FmIndex => "fmindex",
             Library::SviewFmIndex32 => "sview_fmindex32",
             Library::SviewFmIndex128 => "sview_fmindex128",
-            Library::LtFmIndex32 => "lt_fmindex32",
-            Library::LtFmIndex128 => "lt_fmindex128",
         }
         .to_string()
     }
@@ -104,7 +115,7 @@ impl ToString for SearchMode {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = Config::parse();
 
     setup_logger(args.library).unwrap();
 
@@ -123,21 +134,19 @@ fn main() {
     }
 
     match args.library {
-        Library::GenedexI32B64 => genedex_bench::genedex::<i32, Block64>(args),
-        Library::GenedexI64B64 => genedex_bench::genedex::<i64, Block64>(args),
-        Library::GenedexI32B512 => genedex_bench::genedex::<i32, Block64>(args),
-        Library::GenedexI64B512 => genedex_bench::genedex::<i64, Block512>(args),
+        Library::GenedexI32B64 => genedex_bench::genedex::<i32, Block64, CondensedLayout>(args),
+        Library::GenedexI64B64 => genedex_bench::genedex::<i32, Block64, SeparatedLayout>(args),
+        Library::GenedexI32B512 => genedex_bench::genedex::<i32, Block512, CondensedLayout>(args),
+        Library::GenedexI64B512 => genedex_bench::genedex::<i32, Block512, SeparatedLayout>(args),
         Library::Bio => bio_bench::bio(args),
         Library::Awry => awry_bench::awry(args),
         Library::FmIndex => fmindex_bench::fmindex(args),
-        Library::SviewFmIndex32 => lt_and_sview_fmindex_bench::sview_fmindex::<u32>(args),
-        Library::SviewFmIndex128 => lt_and_sview_fmindex_bench::sview_fmindex::<u128>(args),
-        Library::LtFmIndex32 => lt_and_sview_fmindex_bench::lt_fmindex::<u32>(args),
-        Library::LtFmIndex128 => lt_and_sview_fmindex_bench::lt_fmindex::<u128>(args),
+        Library::SviewFmIndex32 => sview_fmindex_bench::sview_fmindex::<u32>(args),
+        Library::SviewFmIndex128 => sview_fmindex_bench::sview_fmindex::<u128>(args),
     }
 }
 
-fn read_texts(args: &Args) -> Vec<Vec<u8>> {
+fn read_texts(args: &Config) -> Vec<Vec<u8>> {
     let start = std::time::Instant::now();
 
     let reader = bio::io::fasta::Reader::from_file(&args.input_texts_path).unwrap();
@@ -165,7 +174,7 @@ fn read_texts(args: &Args) -> Vec<Vec<u8>> {
     seqs
 }
 
-fn read_queries(args: &Args) -> Vec<Vec<u8>> {
+fn read_queries(args: &Config) -> Vec<Vec<u8>> {
     let start = std::time::Instant::now();
 
     let reader = bio::io::fastq::Reader::from_file(&args.queries_path).unwrap();

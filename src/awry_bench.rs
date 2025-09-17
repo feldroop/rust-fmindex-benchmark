@@ -1,25 +1,41 @@
-use crate::{Args, SearchMode, print_after_build_metrics, read_queries, read_texts};
+use crate::common_interface::BenchmarkFmIndex;
+use crate::{Config, SearchMode, print_after_build_metrics, read_queries, read_texts};
 use log::info;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use awry::{alphabet, fm_index};
+
+pub type AwryFmIndex = awry::fm_index::FmIndex;
+
+impl BenchmarkFmIndex for AwryFmIndex {
+    fn count_for_benchmark(&self, query: &[u8]) -> usize {
+        let query = str::from_utf8(query).unwrap();
+        self.count_string(query) as usize
+    }
+
+    fn count_via_locate_for_benchmark(&self, query: &[u8]) -> usize {
+        let query = str::from_utf8(query).unwrap();
+        self.locate_string(&query).len()
+    }
+}
+
 // I don't fully understand the requirements for a temporary suffix array file.
 // `&String` as input for search functions is not idiomatic Rust. I believe it should be `&[u8]` in this case.
 // Applies many smart tricks. Writes diagnostics to stdout, which libraries usually don't do.
-pub fn awry(args: Args) {
-    use awry::{alphabet, fm_index};
-
+pub fn awry(config: Config) {
     let input_texts_path = PathBuf::from(format!(
         "data/input_texts_{}_records.fasta",
-        args.num_text_records
+        config
+            .num_text_records
             .map_or("all".to_string(), |n| n.to_string())
     ));
 
     // prepare the input data file. this is only necessary because of the benchmark setup.
     // (I want to sometimes build the index only for a part of the data set)
     if !std::fs::exists(&input_texts_path).unwrap() {
-        let texts = read_texts(&args);
-        let slice = args.num_text_records.map_or(texts.as_slice(), |l| {
+        let texts = read_texts(&config);
+        let slice = config.num_text_records.map_or(texts.as_slice(), |l| {
             &texts[..std::cmp::min(l, texts.len())]
         });
 
@@ -30,31 +46,23 @@ pub fn awry(args: Args) {
         }
     }
 
-    let index_filepath = PathBuf::from(format!(
-        "indices/{}_sampling_rate_{}_lookup_depth_{}_query_len_{}_text_records_{}.awry",
-        args.library.to_string(),
-        args.suffix_array_sampling_rate,
-        args.depth_of_lookup_table,
-        args.length_of_queries
-            .map_or("full".to_string(), |l| l.to_string()),
-        args.num_text_records
-            .map_or_else(|| "all".to_string(), |n| n.to_string())
-    ));
+    let index_filepath = config.index_filepath();
 
     let build_args = fm_index::FmBuildArgs {
         input_file_src: input_texts_path,
         suffix_array_output_src: Some(
             PathBuf::from_str("indices/awry_temporary_suffix_array_output.txt").unwrap(),
         ),
-        suffix_array_compression_ratio: Some(args.suffix_array_sampling_rate as u64),
-        lookup_table_kmer_len: Some(args.depth_of_lookup_table as u8),
+        suffix_array_compression_ratio: Some(config.suffix_array_sampling_rate as u64),
+        lookup_table_kmer_len: Some(config.depth_of_lookup_table as u8),
         alphabet: alphabet::SymbolAlphabet::Nucleotide,
-        max_query_len: args.length_of_queries,
+        // for now, awry doesn't get this advantage, because it would make the whole benchmark setup more complicated
+        max_query_len: None,
         remove_intermediate_suffix_array_file: true,
     };
 
     let start = std::time::Instant::now();
-    let index = if args.skip_build {
+    let index = if config.skip_build {
         fm_index::FmIndex::load(&index_filepath).unwrap()
     } else {
         fm_index::FmIndex::new(&build_args).unwrap()
@@ -62,33 +70,15 @@ pub fn awry(args: Args) {
 
     print_after_build_metrics(start);
 
-    let queries = read_queries(&args);
+    let queries = read_queries(&config);
 
-    let start = std::time::Instant::now();
-    let mut total_num_hits = 0;
-
-    if let SearchMode::Locate = args.search_mode {
+    if let SearchMode::Locate = config.search_mode {
         info!("Currently, the awry locate function is broken");
     } else {
-        for query in queries {
-            let query = String::from_utf8(query).unwrap();
-
-            total_num_hits += match args.search_mode {
-                SearchMode::Count => index.count_string(&query) as usize,
-                SearchMode::Locate => {
-                    // index.locate_string(&query).len()
-                    0
-                }
-            };
-        }
+        index.run_search_benchmark(&config, &queries);
     }
 
-    info!(
-        "Search queries time: {:.2} seconds, total number of hits: {total_num_hits}",
-        start.elapsed().as_millis() as f64 / 1_000.0
-    );
-
-    if !std::fs::exists(&index_filepath).unwrap() || args.force_write_and_load {
+    if !std::fs::exists(&index_filepath).unwrap() || config.force_write_and_load {
         let start = std::time::Instant::now();
         index.save(&index_filepath).unwrap();
         info!(
