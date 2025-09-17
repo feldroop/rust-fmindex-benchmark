@@ -6,7 +6,7 @@ mod genedex_bench;
 mod sview_fmindex_bench;
 
 use clap::{Parser, ValueEnum};
-use genedex::block::{Block64, Block512, CondensedLayout, SeparatedLayout};
+use genedex::block::{Block64, Block512};
 use log::info;
 use std::path::PathBuf;
 
@@ -134,10 +134,10 @@ fn main() {
     }
 
     match args.library {
-        Library::GenedexI32B64 => genedex_bench::genedex::<i32, Block64, CondensedLayout>(args),
-        Library::GenedexI64B64 => genedex_bench::genedex::<i32, Block64, SeparatedLayout>(args),
-        Library::GenedexI32B512 => genedex_bench::genedex::<i32, Block512, CondensedLayout>(args),
-        Library::GenedexI64B512 => genedex_bench::genedex::<i32, Block512, SeparatedLayout>(args),
+        Library::GenedexI32B64 => genedex_bench::genedex::<i32, Block64>(args),
+        Library::GenedexI64B64 => genedex_bench::genedex::<i64, Block64>(args),
+        Library::GenedexI32B512 => genedex_bench::genedex::<i32, Block512>(args),
+        Library::GenedexI64B512 => genedex_bench::genedex::<i64, Block512>(args),
         Library::Bio => bio_bench::bio(args),
         Library::Awry => awry_bench::awry(args),
         Library::FmIndex => fmindex_bench::fmindex(args),

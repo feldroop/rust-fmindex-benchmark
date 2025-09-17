@@ -1,12 +1,12 @@
 use crate::common_interface::BenchmarkFmIndex;
 use crate::{Config, print_after_build_metrics, read_queries, read_texts};
-use genedex::block::{Block, BlockLayout};
+use genedex::block::Block;
 use genedex::{FmIndex, FmIndexConfig, IndexStorage, alphabet};
 use log::info;
 
-pub type GenedexFMIndex<I, B, L> = FmIndex<I, B, L>;
+pub type GenedexFMIndex<I, B> = FmIndex<I, B>;
 
-impl<I: IndexStorage, B: Block, L: BlockLayout> BenchmarkFmIndex for GenedexFMIndex<I, B, L> {
+impl<I: IndexStorage, B: Block> BenchmarkFmIndex for GenedexFMIndex<I, B> {
     fn count_for_benchmark(&self, query: &[u8]) -> usize {
         self.count(&query)
     }
@@ -16,16 +16,16 @@ impl<I: IndexStorage, B: Block, L: BlockLayout> BenchmarkFmIndex for GenedexFMIn
     }
 }
 
-pub fn genedex<I: IndexStorage, B: Block, L: BlockLayout>(config: Config) {
+pub fn genedex<I: IndexStorage, B: Block>(config: Config) {
     let index_filepath = config.index_filepath();
 
     let start = std::time::Instant::now();
     let index = if config.skip_build {
-        FmIndex::<I, B, L>::load_from_file(&index_filepath).unwrap()
+        FmIndex::<I, B>::load_from_file(&index_filepath).unwrap()
     } else {
         let texts = read_texts(&config);
 
-        FmIndexConfig::<I, B, L>::new()
+        FmIndexConfig::<I, B>::new()
             .lookup_table_depth(config.depth_of_lookup_table)
             .suffix_array_sampling_rate(config.suffix_array_sampling_rate)
             .construct_index(texts, alphabet::ascii_dna_with_n())
