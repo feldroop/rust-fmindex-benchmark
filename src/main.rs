@@ -71,8 +71,10 @@ impl Config {
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
 enum Library {
     GenedexI32B64,
+    GenedexU32B64,
     GenedexI64B64,
     GenedexI32B512,
+    GenedexU32B512,
     GenedexI64B512,
     Bio,
     Awry,
@@ -85,8 +87,10 @@ impl ToString for Library {
     fn to_string(&self) -> String {
         match self {
             Library::GenedexI32B64 => "genedex_i32_b64",
+            Library::GenedexU32B64 => "genedex_u32_b64",
             Library::GenedexI64B64 => "genedex_i64_b64",
             Library::GenedexI32B512 => "genedex_i32_b512",
+            Library::GenedexU32B512 => "genedex_u32_b512",
             Library::GenedexI64B512 => "genedex_i64_b512",
             Library::Bio => "bio",
             Library::Awry => "awry",
@@ -135,8 +139,10 @@ fn main() {
 
     match args.library {
         Library::GenedexI32B64 => genedex_bench::genedex::<i32, Block64>(args),
+        Library::GenedexU32B64 => genedex_bench::genedex::<u32, Block64>(args),
         Library::GenedexI64B64 => genedex_bench::genedex::<i64, Block64>(args),
         Library::GenedexI32B512 => genedex_bench::genedex::<i32, Block512>(args),
+        Library::GenedexU32B512 => genedex_bench::genedex::<u32, Block512>(args),
         Library::GenedexI64B512 => genedex_bench::genedex::<i64, Block512>(args),
         Library::Bio => bio_bench::bio(args),
         Library::Awry => awry_bench::awry(args),
