@@ -42,12 +42,6 @@ pub trait BenchmarkFmIndex: Sized {
     fn construct_or_load_for_benchmark(config: &Config) -> Self {
         let index_filepath = config.index_filepath();
 
-        let texts = if Self::needs_texts() {
-            Some(read_texts(&config))
-        } else {
-            None
-        };
-
         let start = std::time::Instant::now();
         let index = if config.skip_build
             && std::fs::exists(&index_filepath).unwrap()
@@ -55,6 +49,12 @@ pub trait BenchmarkFmIndex: Sized {
         {
             Self::load_from_file_for_benchmark(&index_filepath)
         } else {
+            let texts = if Self::needs_texts() {
+                Some(read_texts(&config))
+            } else {
+                None
+            };
+
             Self::construct_for_benchmark(&config, texts)
         };
 
