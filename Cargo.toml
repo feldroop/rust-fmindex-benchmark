@@ -9,8 +9,10 @@ clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
 
-genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "877f62c1ab52432e54e5a4ce2b9bd00e6f488873" }
-# genedex = { version = "0.1.0", path = "../genedex" }
+seq_io = "0.3"
+
+# genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "877f62c1ab52432e54e5a4ce2b9bd00e6f488873" }
+genedex = { version = "0.1.0", path = "../genedex" }
 
 bio = "2.3"
 serde = "1"
@@ -31,5 +33,5 @@ windows = { version = "0.62", features = [
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# [profile.release]
-# debug = true
+[profile.release]
+debug = true

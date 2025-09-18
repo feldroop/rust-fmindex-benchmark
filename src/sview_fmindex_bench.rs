@@ -1,38 +1,32 @@
+use std::marker::PhantomData;
+use std::path::Path;
+
+use crate::Config;
 use crate::common_interface::BenchmarkFmIndex;
-use crate::{Config, print_after_build_metrics, read_queries, read_texts};
-use log::info;
+
 use sview_fmindex::blocks::Block3;
 use sview_fmindex::build_config::{LookupTableConfig, SuffixArrayConfig};
 use sview_fmindex::text_encoders::EncodingTable;
 use sview_fmindex::{Position, blocks::Vector};
 
-pub type SViewFMIndex<'a, P, V> = sview_fmindex::FmIndex<'a, P, Block3<V>, EncodingTable>;
-
-impl<'a, P: Position, V: Vector> BenchmarkFmIndex for SViewFMIndex<'a, P, V> {
-    fn count_for_benchmark(&self, query: &[u8]) -> usize {
-        self.count(&query).as_usize()
-    }
-
-    fn count_via_locate_for_benchmark(&self, query: &[u8]) -> usize {
-        self.locate(&query).len()
-    }
-}
-
 // Based on [`lt-fm-index`], but improved memory usage during construction and after.
 // The `mmap` support is a nice idea, but probably only relevant for few applications.
-pub fn sview_fmindex<V: sview_fmindex::blocks::Vector>(config: Config) {
-    let index_filepath = config.index_filepath();
+pub struct SViewFMIndex<P, V> {
+    blob: Vec<u8>,
+    _position_marker: PhantomData<P>,
+    _vector_marker: PhantomData<V>,
+}
 
-    let start = std::time::Instant::now();
+impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMIndex<P, V> {
+    type Stub<'a> = sview_fmindex::FmIndex<'a, P, Block3<V>, EncodingTable>;
 
-    let symbols: &[&[u8]] = &[b"A", b"C", b"G", b"T", b"N"];
-    let encoding_table = EncodingTable::from_symbols(symbols);
-    let symbol_count = encoding_table.symbol_count();
+    fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self {
+        let symbols: &[&[u8]] = &[b"A", b"C", b"G", b"T", b"N"];
+        let encoding_table = EncodingTable::from_symbols(symbols);
+        let symbol_count = encoding_table.symbol_count();
 
-    let text: Vec<_> = read_texts(&config).into_iter().flatten().collect();
-    let blob = if config.skip_build {
-        std::fs::read(&index_filepath).unwrap()
-    } else {
+        let text: Vec<_> = texts.unwrap().into_iter().flatten().collect();
+
         let builder = sview_fmindex::FmIndexBuilder::<u32, Block3<V>, EncodingTable>::new(
             text.len(),
             symbol_count,
@@ -51,32 +45,40 @@ pub fn sview_fmindex<V: sview_fmindex::blocks::Vector>(config: Config) {
         let blob_size = builder.blob_size();
         let mut blob = vec![0; blob_size];
         builder.build(text, &mut blob).unwrap();
-        blob
-    };
 
-    let index = sview_fmindex::FmIndex::<u32, Block3<V>, EncodingTable>::load(&blob[..]).unwrap();
-    print_after_build_metrics(start);
+        SViewFMIndex {
+            blob,
+            _position_marker: PhantomData,
+            _vector_marker: PhantomData,
+        }
+    }
 
-    let queries = read_queries(&config);
+    fn supports_file_io_for_benchmark() -> bool {
+        true
+    }
 
-    index.run_search_benchmark(&config, &queries);
+    fn write_to_file_for_benchmark(self, path: &Path) {
+        std::fs::write(path, self.blob).unwrap();
+    }
 
-    if !std::fs::exists(&index_filepath).unwrap() || config.force_write_and_load {
-        let start = std::time::Instant::now();
-        std::fs::write(&index_filepath, blob).unwrap();
-        info!(
-            "Write to disk time: {:.2} seconds",
-            start.elapsed().as_millis() as f64 / 1_000.0
-        );
+    fn load_from_file_for_benchmark(path: &Path) -> Self {
+        let blob = std::fs::read(path).unwrap();
+        SViewFMIndex {
+            blob,
+            _position_marker: PhantomData,
+            _vector_marker: PhantomData,
+        }
+    }
 
-        let start = std::time::Instant::now();
-        let blob = std::fs::read(&index_filepath).unwrap();
-        let index =
-            sview_fmindex::FmIndex::<u32, Block3<V>, EncodingTable>::load(&blob[..]).unwrap();
-        info!(
-            "Load from disk time: {:.2} seconds (dummy: {})",
-            start.elapsed().as_millis() as f64 / 1_000.0,
-            index.count(b"ACGT")
-        );
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a> {
+        Self::Stub::load(&self.blob).unwrap()
+    }
+
+    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+        index.count(&query).as_usize()
+    }
+
+    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+        index.locate(&query).len()
     }
 }

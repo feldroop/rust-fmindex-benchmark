@@ -664,7 +664,6 @@ dependencies = [
 [[package]]
 name = "genedex"
 version = "0.1.0"
-source = "git+https://github.com/feldroop/genedex?rev=877f62c1ab52432e54e5a4ce2b9bd00e6f488873#877f62c1ab52432e54e5a4ce2b9bd00e6f488873"
 dependencies = [
  "bytemuck",
  "libsais",
@@ -1435,6 +1434,7 @@ dependencies = [
  "libc",
  "log",
  "rayon",
+ "seq_io",
  "serde",
  "sview-fmindex",
  "windows",
@@ -1537,6 +1537,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "scoped_threadpool"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d51f5df5af43ab3f1360b429fa5e0152ac5ce8c0bd6485cae490332e96846a8"
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1553,6 +1559,20 @@ name = "semver"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
+
+[[package]]
+name = "seq_io"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1303559e530ee83c1d7a8593a033792c2a29217544a5c48563e116e158d76ade"
+dependencies = [
+ "buffer-redux",
+ "crossbeam-utils",
+ "memchr",
+ "scoped_threadpool",
+ "serde",
+ "serde_derive",
+]
 
 [[package]]
 name = "serde"
