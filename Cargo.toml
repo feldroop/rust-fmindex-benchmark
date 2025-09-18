@@ -8,6 +8,8 @@ rayon = "1.11"
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
+serde = "1"
+ron = "0.11"
 
 seq_io = "0.3"
 
@@ -15,7 +17,6 @@ seq_io = "0.3"
 genedex = { version = "0.1.0", path = "../genedex" }
 
 bio = "2.3"
-serde = "1"
 bincode = { version = "2", features = ["serde"] }
 
 awry = "0.3"

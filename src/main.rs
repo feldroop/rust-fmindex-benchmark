@@ -7,19 +7,16 @@ mod sview_fmindex_bench;
 
 use clap::{Parser, ValueEnum};
 use log::info;
-use std::{convert::identity, fs::File, path::PathBuf};
+use std::{collections::HashMap, convert::identity, fs::File, path::PathBuf};
 
-use crate::common_interface::BenchmarkFmIndex;
+use crate::common_interface::{BenchmarkFmIndex, SearchMetrics};
 
-#[derive(Debug, Parser, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Parser, Clone, PartialEq, Eq)]
 struct Config {
     library: Library,
 
     #[arg(short, long)]
     input_texts: InputTexts,
-
-    #[arg(short, long)]
-    num_text_records: Option<usize>,
 
     #[arg(short, long, default_value_t = 4)]
     suffix_array_sampling_rate: usize,
@@ -42,7 +39,7 @@ struct Config {
     #[arg(short = 'o', long, default_value_t = SearchMode::Locate)]
     search_mode: SearchMode,
 
-    #[arg(short, long, default_value_t = 3)]
+    #[arg(short, long, default_value_t = 5)]
     repeat_search: usize,
 
     #[arg(long)]
@@ -55,21 +52,41 @@ struct Config {
     verbose: bool,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
+struct SearchConfig {
+    search_mode: SearchMode,
+    num_queries_records: Option<usize>,
+    length_of_queries: Option<usize>,
+}
+
 impl Config {
     fn index_filepath(&self) -> PathBuf {
         PathBuf::from(format!(
-            "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.{}",
+            "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.index",
             self.library.to_string(),
             self.suffix_array_sampling_rate,
             self.depth_of_lookup_table,
-            self.num_text_records
-                .map_or_else(|| "all".to_string(), |n| n.to_string()),
-            self.library.to_string()
+            self.input_texts.to_string(),
         ))
+    }
+
+    fn search_config(&self) -> SearchConfig {
+        SearchConfig {
+            search_mode: self.search_mode,
+            num_queries_records: self.num_queries_records,
+            length_of_queries: self.num_queries_records,
+        }
+    }
+
+    fn has_same_index_config_as(&self, other: &Config) -> bool {
+        self.build_thread_count == other.build_thread_count
+            && self.depth_of_lookup_table == other.depth_of_lookup_table
+            && self.library == other.library
+            && self.suffix_array_sampling_rate == other.suffix_array_sampling_rate
     }
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
 enum InputTexts {
     Chromosome,
     I32,
@@ -100,7 +117,9 @@ impl InputTexts {
     }
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[derive(
+    serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash,
+)]
 enum Library {
     GenedexI32Flat64,
     GenedexU32Flat64,
@@ -138,7 +157,9 @@ impl ToString for Library {
     }
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[derive(
+    serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash,
+)]
 enum SearchMode {
     Count,
     Locate,
@@ -154,9 +175,69 @@ impl ToString for SearchMode {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct BenchmarkResult {
+    config: Config,
+
+    // only set when the build was not skipped
+    construction_time_secs: Option<f64>,
+    construction_peak_memory_usage_mb: Option<f64>,
+
+    // only set when loading from disk to make sure that remaining from texts and build allocations don't count
+    only_index_in_memory_size_mb: Option<f64>,
+
+    search_metrics: HashMap<SearchConfig, SearchMetrics>,
+
+    // only set when file IO is available and was not skipped
+    write_to_file_time_secs: Option<f64>,
+    read_from_file_time_secs: Option<f64>,
+}
+
+impl BenchmarkResult {
+    fn new_empty(config: Config) -> Self {
+        Self {
+            config,
+            construction_time_secs: None,
+            construction_peak_memory_usage_mb: None,
+            only_index_in_memory_size_mb: None,
+            search_metrics: HashMap::new(),
+            write_to_file_time_secs: None,
+            read_from_file_time_secs: None,
+        }
+    }
+
+    fn update(&mut self, other: Self) {
+        assert!(self.config.has_same_index_config_as(&other.config));
+
+        self.construction_time_secs = other.construction_time_secs.or(self.construction_time_secs);
+        self.construction_peak_memory_usage_mb = other
+            .construction_peak_memory_usage_mb
+            .or(self.construction_peak_memory_usage_mb);
+        self.only_index_in_memory_size_mb = other
+            .only_index_in_memory_size_mb
+            .or(self.only_index_in_memory_size_mb);
+        self.write_to_file_time_secs = other
+            .write_to_file_time_secs
+            .or(self.write_to_file_time_secs);
+        self.read_from_file_time_secs = other
+            .read_from_file_time_secs
+            .or(self.read_from_file_time_secs);
+
+        for (search_config, search_metrics) in other.search_metrics.into_iter() {
+            self.search_metrics.insert(search_config, search_metrics);
+        }
+    }
+}
+
 // input genome should be placed at data/hg38
 fn main() {
     let config = Config::parse();
+
+    for dir_name in ["data", "indices", "logs", "results"] {
+        if !std::fs::exists(dir_name).unwrap() {
+            std::fs::create_dir(dir_name).unwrap();
+        }
+    }
 
     setup_logger(config.library).unwrap();
 
@@ -176,7 +257,7 @@ fn main() {
         info!("Configuration: {:#?}", config);
     }
 
-    match config.library {
+    let result = match config.library {
         Library::GenedexI32Flat64 => genedex::FmIndexFlat64::<i32>::run_benchmark(&config),
         Library::GenedexU32Flat64 => genedex::FmIndexFlat64::<u32>::run_benchmark(&config),
         Library::GenedexI64Flat64 => genedex::FmIndexFlat64::<i64>::run_benchmark(&config),
@@ -198,7 +279,9 @@ fn main() {
         Library::SviewFmIndexU64Vec128 => {
             sview_fmindex_bench::SViewFMIndex::<u64, u128>::run_benchmark(&config)
         }
-    }
+    };
+
+    update_stored_results(result, config);
 }
 
 fn setup_input_data() {
@@ -243,163 +326,6 @@ fn setup_input_data() {
     }
 }
 
-fn read_texts(config: &Config) -> Vec<Vec<u8>> {
-    let start = std::time::Instant::now();
-
-    let mut reader = seq_io::fasta::Reader::from_path(&config.input_texts.get_filepath()).unwrap();
-    let mut seqs = Vec::new();
-
-    for (i, record) in reader.records().enumerate() {
-        if let Some(n) = config.num_text_records {
-            if i == n {
-                break;
-            }
-        }
-
-        seqs.push(record.unwrap().seq);
-    }
-
-    transfrom_seqs(&mut seqs, "texts", b'N', config.verbose);
-
-    if config.verbose {
-        info!(
-            "Texts reading time: {:.2} seconds",
-            start.elapsed().as_millis() as f64 / 1_000.0
-        );
-    }
-
-    seqs
-}
-
-fn read_queries(config: &Config) -> Vec<Vec<u8>> {
-    let start = std::time::Instant::now();
-
-    let mut reader = seq_io::fastq::Reader::from_path(&config.queries_path).unwrap();
-    let mut seqs = Vec::new();
-
-    for (i, record) in reader.records().enumerate() {
-        if let Some(n) = config.num_queries_records {
-            if i == n {
-                break;
-            }
-        }
-
-        let mut seq = record.unwrap().seq;
-        if let Some(l) = config.length_of_queries {
-            seq.truncate(l);
-        }
-        seqs.push(seq);
-    }
-
-    transfrom_seqs(&mut seqs, "queries", b'A', config.verbose);
-
-    if config.verbose {
-        info!(
-            "Queries reading time: {:.2} seconds",
-            start.elapsed().as_millis() as f64 / 1_000.0
-        );
-    }
-
-    seqs
-}
-
-fn transfrom_seqs(seqs: &mut Vec<Vec<u8>>, name: &str, replacement_symbol: u8, verbose: bool) {
-    let mut translation_table: Vec<_> = (0u8..=255).collect();
-    for degenerate_symbol in b"rRyYkKMmSsWwBbDdHhVvNn".iter().copied() {
-        translation_table[degenerate_symbol as usize] = replacement_symbol;
-    }
-    translation_table[b'a' as usize] = b'A';
-    translation_table[b'c' as usize] = b'C';
-    translation_table[b'g' as usize] = b'G';
-    translation_table[b't' as usize] = b'T';
-
-    for seq in seqs.iter_mut() {
-        for symbol in seq.iter_mut() {
-            *symbol = translation_table[*symbol as usize];
-        }
-    }
-
-    let texts_len: usize = seqs.iter().map(|t| t.len()).sum();
-
-    let average_record_length =
-        seqs.iter().map(|s| s.len()).sum::<usize>() as f64 / seqs.len() as f64;
-
-    if verbose {
-        info!(
-            "Total length of {name}: {} MB, average record length: {:.1}",
-            texts_len / 1_000_000,
-            average_record_length
-        );
-    }
-
-    info!(
-        "Current memory usage after reading {name}: {:.1} MB",
-        process_current_memory_usage_mb()
-    );
-}
-
-fn print_after_build_metrics(start: std::time::Instant) {
-    info!(
-        "Build/load time: {:.2} seconds",
-        start.elapsed().as_millis() as f64 / 1_000.0
-    );
-
-    info!(
-        "Peak memory usage after building/loading: {:.1} MB",
-        process_peak_memory_usage_mb()
-    );
-    info!(
-        "Current memory usage after building/loading: {:.1} MB",
-        process_current_memory_usage_mb()
-    );
-}
-
-// ---------- just for fun, I implemented the memory usage functionaliy by hand ----------
-#[cfg(windows)]
-fn get_memory_info() -> windows::Win32::System::ProcessStatus::PROCESS_MEMORY_COUNTERS {
-    use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
-    use windows::Win32::System::Threading::GetCurrentProcess;
-
-    let handle = unsafe { GetCurrentProcess() };
-    let mut memory_info = PROCESS_MEMORY_COUNTERS::default();
-    let ptr: *mut PROCESS_MEMORY_COUNTERS = &mut memory_info;
-    // safety: standard usage of this windows API, I think it should be safe
-    unsafe {
-        GetProcessMemoryInfo(handle, ptr, std::mem::size_of_val(&memory_info) as u32).unwrap()
-    };
-    memory_info
-}
-
-#[cfg(windows)]
-fn process_peak_memory_usage_mb() -> f64 {
-    get_memory_info().PeakWorkingSetSize as f64 / 1_000_000.0
-}
-
-#[cfg(windows)]
-fn process_current_memory_usage_mb() -> f64 {
-    get_memory_info().WorkingSetSize as f64 / 1_000_000.0
-}
-
-#[cfg(unix)]
-fn process_peak_memory_usage_mb() -> f64 {
-    let mut memory_info: libc::rusage = unsafe { std::mem::zeroed() };
-    let ret =
-        unsafe { libc::getrusage(libc::RUSAGE_SELF, (&mut memory_info) as *mut libc::rusage) };
-    assert!(ret == 0);
-
-    memory_info.ru_maxrss as f64 / 1_000.0
-}
-
-#[cfg(unix)]
-fn process_current_memory_usage_mb() -> f64 {
-    let statm = std::fs::read_to_string("/proc/self/statm").unwrap();
-    let fields: Vec<&str> = statm.split_whitespace().collect();
-
-    let num_pages = fields[0].parse::<u64>().unwrap();
-    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as u64;
-    (num_pages * page_size) as f64 / 1_000_000.0
-}
-
 fn setup_logger(library: Library) -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .format(|out, message, _| out.finish(format_args!("{}", message)))
@@ -408,4 +334,25 @@ fn setup_logger(library: Library) -> Result<(), fern::InitError> {
         .chain(fern::log_file(format!("logs/{}.txt", library.to_string()))?)
         .apply()?;
     Ok(())
+}
+
+fn update_stored_results(result: BenchmarkResult, config: Config) {
+    let results_filepath = format!("results/{}.ron", config.input_texts.to_string());
+
+    let mut results: HashMap<(Library, u16), BenchmarkResult> =
+        if std::fs::exists(&results_filepath).unwrap() {
+            let file = File::open(&results_filepath).unwrap();
+            ron::de::from_reader(file).unwrap()
+        } else {
+            HashMap::new()
+        };
+
+    let existing_result = results
+        .entry((config.library, config.build_thread_count))
+        .or_insert_with(|| BenchmarkResult::new_empty(config));
+
+    existing_result.update(result);
+
+    let serialized = ron::ser::to_string_pretty(&results, Default::default()).unwrap();
+    std::fs::write(results_filepath, serialized).unwrap();
 }

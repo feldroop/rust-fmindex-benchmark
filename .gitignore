@@ -2,6 +2,7 @@
 /indices
 /data
 /logs
+/results
 .todo
 flamegraph.svg
 perf.data
