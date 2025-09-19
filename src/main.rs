@@ -5,13 +5,14 @@ mod fmindex_bench;
 mod genedex_bench;
 mod sview_fmindex_bench;
 
+use crate::common_interface::{BenchmarkFmIndex, SearchMetrics};
 use clap::{Parser, ValueEnum};
 use log::info;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::identity, fs::File, path::PathBuf};
+use strum::Display;
 
-use crate::common_interface::{BenchmarkFmIndex, SearchMetrics};
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Parser, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Parser, Clone, PartialEq, Eq)]
 struct Config {
     library: Library,
 
@@ -52,21 +53,34 @@ struct Config {
     verbose: bool,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
 struct SearchConfig {
     search_mode: SearchMode,
     num_queries_records: Option<usize>,
     length_of_queries: Option<usize>,
 }
 
+impl ToString for SearchConfig {
+    fn to_string(&self) -> String {
+        format!(
+            "{}-{}-{}",
+            self.search_mode,
+            self.num_queries_records
+                .map_or_else(|| String::from("all"), |n| n.to_string()),
+            self.length_of_queries
+                .map_or_else(|| String::from("full"), |n| n.to_string())
+        )
+    }
+}
+
 impl Config {
     fn index_filepath(&self) -> PathBuf {
         PathBuf::from(format!(
             "indices/{}_sampling_rate_{}_lookup_depth_{}_text_records_{}.index",
-            self.library.to_string(),
+            self.library,
             self.suffix_array_sampling_rate,
             self.depth_of_lookup_table,
-            self.input_texts.to_string(),
+            self.input_texts,
         ))
     }
 
@@ -86,24 +100,12 @@ impl Config {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Display)]
 enum InputTexts {
     Chromosome,
     I32,
     Hg38,
     DoubleHg38,
-}
-
-impl ToString for InputTexts {
-    fn to_string(&self) -> String {
-        match self {
-            InputTexts::Chromosome => "chromosome",
-            InputTexts::I32 => "i32",
-            InputTexts::Hg38 => "hg38",
-            InputTexts::DoubleHg38 => "double-hg38",
-        }
-        .to_string()
-    }
 }
 
 impl InputTexts {
@@ -117,9 +119,7 @@ impl InputTexts {
     }
 }
 
-#[derive(
-    serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash,
-)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, Display)]
 enum Library {
     GenedexI32Flat64,
     GenedexU32Flat64,
@@ -136,46 +136,13 @@ enum Library {
     SviewFmIndexU64Vec128,
 }
 
-impl ToString for Library {
-    fn to_string(&self) -> String {
-        match self {
-            Library::GenedexI32Flat64 => "genedex_i32_flat64",
-            Library::GenedexU32Flat64 => "genedex_u32_flat64",
-            Library::GenedexI64Flat64 => "genedex_i64_flat64",
-            Library::GenedexI32Cond512 => "genedex_i32_cond512",
-            Library::GenedexU32Cond512 => "genedex_u32_cond512",
-            Library::GenedexI64Cond512 => "genedex_i64_cond512",
-            Library::Bio => "bio",
-            Library::Awry => "awry",
-            Library::FmIndex => "fmindex",
-            Library::SviewFmIndexU32Vec32 => "sview_fmindex_u32_vec32",
-            Library::SviewFmIndexU32Vec128 => "sview_fmindex_u32_vec128",
-            Library::SviewFmIndexU64Vec32 => "sview_fmindex_u64_vec32",
-            Library::SviewFmIndexU64Vec128 => "sview_fmindex_u64_vec128",
-        }
-        .to_string()
-    }
-}
-
-#[derive(
-    serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash,
-)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, Display)]
 enum SearchMode {
     Count,
     Locate,
 }
 
-impl ToString for SearchMode {
-    fn to_string(&self) -> String {
-        match self {
-            SearchMode::Count => "count",
-            SearchMode::Locate => "locate",
-        }
-        .to_string()
-    }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct BenchmarkResult {
     config: Config,
 
@@ -186,7 +153,7 @@ struct BenchmarkResult {
     // only set when loading from disk to make sure that remaining from texts and build allocations don't count
     only_index_in_memory_size_mb: Option<f64>,
 
-    search_metrics: HashMap<SearchConfig, SearchMetrics>,
+    search_metrics: HashMap<String, SearchMetrics>,
 
     // only set when file IO is available and was not skipped
     write_to_file_time_secs: Option<f64>,
@@ -250,7 +217,7 @@ fn main() {
 
     info!(
         "------------------------------ starting benchmark for {} ------------------------------",
-        config.library.to_string(),
+        config.library,
     );
 
     if config.verbose {
@@ -301,28 +268,30 @@ fn setup_input_data() {
     let chromosome_num_records = 10;
     let i32_num_records = 30;
 
-    let mut reader = seq_io::fasta::Reader::from_path(path_hg38).unwrap();
+    let reader = bio::io::fasta::Reader::from_file(path_hg38).unwrap();
 
-    let chromosome_file = File::create(path_chromosome).unwrap();
-    let i32_file = File::create(path_i32).unwrap();
-    let double_hg38_file = File::create(path_double_hg38).unwrap();
+    let mut chromosome_writer = bio::io::fasta::Writer::to_file(path_chromosome).unwrap();
+    let mut i32_writer = bio::io::fasta::Writer::to_file(path_i32).unwrap();
+    let mut double_hg38_writer = bio::io::fasta::Writer::to_file(path_double_hg38).unwrap();
 
     for (i, record) in reader.records().enumerate() {
         let record = record.unwrap();
 
         if i < chromosome_num_records {
-            seq_io::fasta::write_to(&chromosome_file, &record.head, &record.seq).unwrap();
+            chromosome_writer.write_record(&record).unwrap();
         }
 
         if i < i32_num_records {
-            seq_io::fasta::write_to(&i32_file, &record.head, &record.seq).unwrap();
+            i32_writer.write_record(&record).unwrap();
         }
 
-        seq_io::fasta::write_to(&double_hg38_file, &record.head, &record.seq).unwrap();
+        double_hg38_writer.write_record(&record).unwrap();
 
-        let revcomp = bio::alphabets::dna::revcomp(&record.seq);
+        let revcomp = bio::alphabets::dna::revcomp(record.seq());
 
-        seq_io::fasta::write_to(&double_hg38_file, &record.head, &revcomp).unwrap();
+        double_hg38_writer
+            .write(record.id(), record.desc(), &revcomp)
+            .unwrap();
     }
 }
 
@@ -331,28 +300,33 @@ fn setup_logger(library: Library) -> Result<(), fern::InitError> {
         .format(|out, message, _| out.finish(format_args!("{}", message)))
         .level(log::LevelFilter::Info)
         .chain(std::io::stdout())
-        .chain(fern::log_file(format!("logs/{}.txt", library.to_string()))?)
+        .chain(fern::log_file(format!("logs/{}.txt", library))?)
         .apply()?;
     Ok(())
 }
 
 fn update_stored_results(result: BenchmarkResult, config: Config) {
-    let results_filepath = format!("results/{}.ron", config.input_texts.to_string());
+    let results_filepath = format!("results/{}.json", config.input_texts);
 
-    let mut results: HashMap<(Library, u16), BenchmarkResult> =
+    let mut results: HashMap<String, BenchmarkResult> =
         if std::fs::exists(&results_filepath).unwrap() {
             let file = File::open(&results_filepath).unwrap();
-            ron::de::from_reader(file).unwrap()
+            serde_json::from_reader(file).unwrap()
         } else {
             HashMap::new()
         };
 
     let existing_result = results
-        .entry((config.library, config.build_thread_count))
+        .entry(key_to_string(config.library, config.build_thread_count))
         .or_insert_with(|| BenchmarkResult::new_empty(config));
 
     existing_result.update(result);
 
-    let serialized = ron::ser::to_string_pretty(&results, Default::default()).unwrap();
-    std::fs::write(results_filepath, serialized).unwrap();
+    let file = File::create(&results_filepath).unwrap();
+
+    serde_json::to_writer_pretty(file, &results).unwrap();
+}
+
+fn key_to_string(library: Library, build_num_threads: u16) -> String {
+    format!("{library}-threads-{build_num_threads}")
 }

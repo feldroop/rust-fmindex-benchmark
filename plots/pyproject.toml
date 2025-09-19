@@ -1,0 +1,11 @@
+[project]
+name = "plots"
+version = "0.1.0"
+description = "Plots for the Rust FM-Index benchmark"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["matplotlib"]
+
+[tool.maturin]
+python-source = "plots"
+module-name = "rust_fmindex_benchmark.plots"

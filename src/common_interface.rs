@@ -143,16 +143,13 @@ pub trait BenchmarkFmIndex: Sized {
         }
 
         if config.search_mode == SearchMode::Locate && !Self::supports_locate_for_benchmark() {
-            info!(
-                "Currently, {} does not support locate.",
-                config.library.to_string()
-            );
+            info!("Currently, {} does not support locate.", config.library);
         } else {
             let search_metrics = index.run_search_benchmark(&config);
 
             result
                 .search_metrics
-                .insert(config.search_config(), search_metrics);
+                .insert(config.search_config().to_string(), search_metrics);
         }
 
         if Self::supports_file_io_for_benchmark() {
@@ -189,11 +186,11 @@ pub struct FileIoMetrics {
 fn read_texts(config: &Config) -> Vec<Vec<u8>> {
     let start = std::time::Instant::now();
 
-    let mut reader = seq_io::fasta::Reader::from_path(&config.input_texts.get_filepath()).unwrap();
+    let reader = bio::io::fasta::Reader::from_file(&config.input_texts.get_filepath()).unwrap();
     let mut seqs = reader
         .records()
         .into_iter()
-        .map(|r| r.unwrap().seq)
+        .map(|r| r.unwrap().seq().to_vec())
         .collect();
 
     transfrom_seqs(&mut seqs, "texts", b'N', config.verbose);
@@ -211,7 +208,7 @@ fn read_texts(config: &Config) -> Vec<Vec<u8>> {
 fn read_queries(config: &Config) -> Vec<Vec<u8>> {
     let start = std::time::Instant::now();
 
-    let mut reader = seq_io::fastq::Reader::from_path(&config.queries_path).unwrap();
+    let reader = bio::io::fastq::Reader::from_file(&config.queries_path).unwrap();
     let mut seqs = Vec::new();
 
     for (i, record) in reader.records().enumerate() {
@@ -221,11 +218,12 @@ fn read_queries(config: &Config) -> Vec<Vec<u8>> {
             }
         }
 
-        let mut seq = record.unwrap().seq;
+        let record = record.unwrap();
+        let mut slice = record.seq();
         if let Some(l) = config.length_of_queries {
-            seq.truncate(l);
+            slice = &slice[..std::cmp::min(l, slice.len())];
         }
-        seqs.push(seq);
+        seqs.push(slice.to_vec());
     }
 
     transfrom_seqs(&mut seqs, "queries", b'A', config.verbose);

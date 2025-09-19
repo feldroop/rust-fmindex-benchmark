@@ -3,6 +3,7 @@
 /data
 /logs
 /results
+/plots/.venv
 .todo
 flamegraph.svg
 perf.data

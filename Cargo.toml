@@ -9,9 +9,8 @@ clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 fern = "0.7"
 serde = "1"
-ron = "0.11"
-
-seq_io = "0.3"
+serde_json = "1"
+strum = { version = "0.27", features = ["derive"] }
 
 # genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "877f62c1ab52432e54e5a4ce2b9bd00e6f488873" }
 genedex = { version = "0.1.0", path = "../genedex" }
