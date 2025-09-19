@@ -100,9 +100,6 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
         print(f"No data yet for metric {right_metric} on input texts {input_texts_name}") 
         return
     
-    print(left_metric_values)
-    print(right_metric_values)
-
     duo_plot(
         library_configs,
         left_metric_values,
