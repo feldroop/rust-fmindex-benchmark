@@ -53,26 +53,6 @@ struct Config {
     verbose: bool,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
-struct SearchConfig {
-    search_mode: SearchMode,
-    num_queries_records: Option<usize>,
-    length_of_queries: Option<usize>,
-}
-
-impl ToString for SearchConfig {
-    fn to_string(&self) -> String {
-        format!(
-            "{}-{}-{}",
-            self.search_mode,
-            self.num_queries_records
-                .map_or_else(|| String::from("all"), |n| n.to_string()),
-            self.length_of_queries
-                .map_or_else(|| String::from("full"), |n| n.to_string())
-        )
-    }
-}
-
 impl Config {
     fn index_filepath(&self) -> PathBuf {
         PathBuf::from(format!(
@@ -88,7 +68,7 @@ impl Config {
         SearchConfig {
             search_mode: self.search_mode,
             num_queries_records: self.num_queries_records,
-            length_of_queries: self.num_queries_records,
+            length_of_queries: self.length_of_queries,
         }
     }
 
@@ -97,6 +77,26 @@ impl Config {
             && self.depth_of_lookup_table == other.depth_of_lookup_table
             && self.library == other.library
             && self.suffix_array_sampling_rate == other.suffix_array_sampling_rate
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
+struct SearchConfig {
+    search_mode: SearchMode,
+    num_queries_records: Option<usize>,
+    length_of_queries: Option<usize>,
+}
+
+impl ToString for SearchConfig {
+    fn to_string(&self) -> String {
+        format!(
+            "{}-{}-{}",
+            self.search_mode,
+            self.num_queries_records
+                .map_or_else(|| String::from("all"), |n| n.to_string()),
+            self.length_of_queries
+                .map_or_else(|| String::from("full"), |l| l.to_string())
+        )
     }
 }
 
