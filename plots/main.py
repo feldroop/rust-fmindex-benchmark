@@ -166,7 +166,7 @@ def all_plots_for(input_texts_name):
             return
 
 def main():
-    for input_texts in ["chromosome", "i32", "hg38", "double-hg38"]:
+    for input_texts in ["Chromosome", "I32", "Hg38", "DoubleHg38"]:
         all_plots_for(input_texts)
 
 if __name__ == "__main__":
