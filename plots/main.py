@@ -86,7 +86,8 @@ def extract_metric(metric: str, result: dict, unit: str):
 
 def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     library_configs, results_data = read_library_configs_and_result_data(input_texts_name)
-
+    library_config_tuples = list(map(parse_library_config, library_configs))
+    
     left_metric, right_metric = plot_kind_name_to_metrics[plot_kind_name]
 
     left_metric_name = metric_to_metric_name[left_metric]
@@ -99,9 +100,8 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     
     i = 0
 
-    for left, right in zip(left_metric_values.copy(), right_metric_values.copy()):
-        if left is None or right is None:
-            print(f"No data yet for metric {left_metric} or {right_metric} on input texts {input_texts_name}") 
+    for tuple, left, right in zip(library_config_tuples.copy(), left_metric_values.copy(), right_metric_values.copy()):
+        if left is None or right is None or (plot_kind_name != "Construction" and tuple[0] != 1):
             library_configs.pop(i)
             left_metric_values.pop(i)
             right_metric_values.pop(i)
@@ -112,7 +112,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
         return
 
     duo_plot(
-        library_configs,
+        library_config_tuples,
         left_metric_values,
         right_metric_values,
         f"{plot_kind_name}-{input_texts_name}",
@@ -123,7 +123,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     )
 
 def duo_plot(
-        library_configs, 
+        library_config_tuples, 
         left_data, 
         right_data, 
         name,
@@ -132,9 +132,8 @@ def duo_plot(
         left_unit,
         right_unit,
     ):
-    x = list(range(len(library_configs)))
+    x = list(range(len(library_config_tuples)))
 
-    library_config_tuples = list(map(parse_library_config, library_configs))
     library_nice_names = list(map(library_tuple_to_simple_name , library_config_tuples))
     library_colors = list(map(library_tuple_to_color , library_config_tuples))
 
@@ -172,7 +171,7 @@ def all_plots_for(input_texts_name):
         try: 
             duo_plot_for_run(plot, input_texts_name)
         except Exception as e:
-            print(f"An error occurred when trying to read the benchmarks JSON file for {input_texts_name}. Maybe the file is missing?\n{e}")
+            print(f"An error occurred when trying to read the benchmarks JSON file for {input_texts_name}.\n{e}")
             return
 
 def main():
