@@ -6,9 +6,9 @@ depth_of_lookup_table := "-d 10 "
 num_queries_records := ""
 length_of_queries := "-l 50 "
 search_mode := "-o locate "
-skip_build := ""
+skip_build := "--skip-build"
 force_write_and_load := ""
-verbose := "-v "
+verbose := ""
 threads := "-t 8"
 
 args := suffix_array_sampling_rate + depth_of_lookup_table + num_queries_records + length_of_queries + search_mode + skip_build + force_write_and_load + verbose
