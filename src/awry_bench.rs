@@ -55,4 +55,8 @@ impl BenchmarkFmIndex for AwryFmIndex {
         let query = str::from_utf8(query).unwrap();
         index.locate_string(&query).len()
     }
+
+    fn supports_locate_for_benchmark() -> bool {
+        false
+    }
 }
