@@ -20,10 +20,10 @@ library_name_to_info = {
 
 # for now, only do plots with query length 50
 plot_kind_name_to_metrics = {
-    "construction": ("construction_time_secs", "construction_peak_memory_usage_mb"),
-    "file-io": ("write_to_file_time_secs", "read_from_file_time_secs"),
-    "count": ("Count-all-50", "only_index_in_memory_size_mb"),
-    "locate": ("Locate-all-50", "only_index_in_memory_size_mb"),
+    "Construction": ("construction_time_secs", "construction_peak_memory_usage_mb"),
+    "FileIO": ("write_to_file_time_secs", "read_from_file_time_secs"),
+    "Count": ("Count-all-50", "only_index_in_memory_size_mb"),
+    "Locate": ("Locate-all-50", "only_index_in_memory_size_mb"),
 }
 
 metric_to_metric_name = {
@@ -40,7 +40,7 @@ def metric_name_to_unit(metric_name: str):
     if metric_name.endswith("running time"):
         return "seconds"
     elif metric_name.endswith("memory usage"):
-        return "megabytes"
+        return "gigabytes"
 
 def parse_library_config(s: str):
     parsed = s.split('-')
@@ -62,13 +62,14 @@ def read_library_configs_and_result_data(input_texts_name: str):
         file_contents = f.read()
         results = json.loads(file_contents)
 
-    results_list = list(results.items())
+    results_list = sorted(results.items(), key=lambda tup: tup[0])
+
     library_configs = list(map(lambda tup: tup[0], results_list))
     results_data = list(map(lambda tup: tup[1], results_list))
 
     return library_configs, results_data
 
-def extract_metric(metric: str, result: dict, input_texts_name: str):
+def extract_metric(metric: str, result: dict, unit: str):
     if metric.startswith("Locate") or metric.startswith("Count"):
         # for now only go with min running times
         search_result = result["search_metrics"].get(metric)
@@ -77,29 +78,39 @@ def extract_metric(metric: str, result: dict, input_texts_name: str):
         else:
             return None
     else:
-        return result[metric]
+        value = result[metric]
+        if value and unit == "gigabytes":
+            return value / 1000
+        else:
+            return value
 
 def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     library_configs, results_data = read_library_configs_and_result_data(input_texts_name)
 
     left_metric, right_metric = plot_kind_name_to_metrics[plot_kind_name]
 
-    left_metric_values = list(map(lambda result: extract_metric(left_metric, result, input_texts_name), results_data))
-    right_metric_values = list(map(lambda result: extract_metric(right_metric, result, input_texts_name), results_data))
-    
     left_metric_name = metric_to_metric_name[left_metric]
     left_unit = metric_name_to_unit(left_metric_name)
     right_metric_name = metric_to_metric_name[right_metric]
     right_unit = metric_name_to_unit(right_metric_name)
+
+    left_metric_values = list(map(lambda result: extract_metric(left_metric, result, left_unit), results_data))
+    right_metric_values = list(map(lambda result: extract_metric(right_metric, result, right_unit), results_data))
     
-    if None in left_metric_values:
-        print(f"No data yet for metric {left_metric} on input texts {input_texts_name}") 
+    i = 0
+
+    for left, right in zip(left_metric_values.copy(), right_metric_values.copy()):
+        if left is None or right is None:
+            print(f"No data yet for metric {left_metric} or {right_metric} on input texts {input_texts_name}") 
+            library_configs.pop(i)
+            left_metric_values.pop(i)
+            right_metric_values.pop(i)
+        else:
+            i += 1
+    
+    if len(library_configs) == 0:
         return
-    
-    if None in right_metric_values:
-        print(f"No data yet for metric {right_metric} on input texts {input_texts_name}") 
-        return
-    
+
     duo_plot(
         library_configs,
         left_metric_values,
@@ -129,16 +140,18 @@ def duo_plot(
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 7))
     
+    bar_label_fmt = "{:.2f}"
+
     bars1 = ax1.bar(x, left_data, color=library_colors)
     ax1.set_title(f"{left_metric_name} in {left_unit}")
     ax1.set_xticks([]) 
-    ax1.bar_label(bars1)
+    ax1.bar_label(bars1, fmt=bar_label_fmt)
     ax1.set_ylabel(left_unit)
 
     bars2 = ax2.bar(x, right_data, color=library_colors)
     ax2.set_title(f"{right_metric_name} in {right_unit}")
     ax2.set_xticks([]) 
-    ax2.bar_label(bars2)
+    ax2.bar_label(bars2, fmt=bar_label_fmt)
     ax2.set_ylabel(right_unit)
 
     fig.subplots_adjust(top=0.70)
@@ -155,11 +168,11 @@ def duo_plot(
     fig.savefig(f"img/{name}.svg", bbox_inches="tight")
 
 def all_plots_for(input_texts_name):
-    for plot in ["construction", "file-io", "count", "locate"]:
+    for plot in ["Construction", "FileIO", "Count", "Locate"]:
         try: 
             duo_plot_for_run(plot, input_texts_name)
-        except:
-            print(f"An error occurred when trying to read the benchmarks JSON file for {input_texts_name}. Maybe the file is missing?")
+        except Exception as e:
+            print(f"An error occurred when trying to read the benchmarks JSON file for {input_texts_name}. Maybe the file is missing?\n{e}")
             return
 
 def main():
