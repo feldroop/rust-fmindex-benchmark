@@ -138,9 +138,9 @@ pub trait BenchmarkFmIndex: Sized {
             result.construction_peak_memory_usage_mb =
                 Some(construction_metrics.peak_memory_usage_mb);
             result.construction_time_secs = Some(construction_metrics.elapsed_time_secs);
-        } else {
-            result.only_index_in_memory_size_mb = Some(construction_metrics.curr_memory_usage_mb);
         }
+
+        result.only_index_in_memory_size_mb = Some(construction_metrics.curr_memory_usage_mb);
 
         if config.search_mode == SearchMode::Locate && !Self::supports_locate_for_benchmark() {
             info!("Currently, {} does not support locate.", config.library);

@@ -100,8 +100,8 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     
     i = 0
 
-    for tuple, left, right in zip(library_config_tuples.copy(), left_metric_values.copy(), right_metric_values.copy()):
-        if left is None or right is None or (plot_kind_name != "Construction" and tuple[1] != 1):
+    for tup, left, right in zip(library_config_tuples.copy(), left_metric_values.copy(), right_metric_values.copy()):
+        if left is None or right is None or (plot_kind_name != "Construction" and tup[1] != 1):
             library_config_tuples.pop(i)
             left_metric_values.pop(i)
             right_metric_values.pop(i)
@@ -160,7 +160,7 @@ def duo_plot(
         bbox_to_anchor=(0, 0.75, 1, 0.2),
         bbox_transform=fig.transFigure, 
         loc="lower center", 
-        ncol = 4
+        ncol = 3
     )
 
     # fig.tight_layout()

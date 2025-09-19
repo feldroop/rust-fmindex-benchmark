@@ -27,7 +27,7 @@ impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMInd
 
         let text: Vec<_> = texts.unwrap().into_iter().flatten().collect();
 
-        let builder = sview_fmindex::FmIndexBuilder::<u32, Block3<V>, EncodingTable>::new(
+        let builder = sview_fmindex::FmIndexBuilder::<P, Block3<V>, EncodingTable>::new(
             text.len(),
             symbol_count,
             encoding_table,
