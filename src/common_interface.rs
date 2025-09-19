@@ -43,11 +43,11 @@ pub trait BenchmarkFmIndex: Sized {
         let index_filepath = config.index_filepath();
 
         let start = std::time::Instant::now();
-        let index = if config.skip_build
+        let (index, was_constructed) = if config.skip_build
             && std::fs::exists(&index_filepath).unwrap()
             && Self::supports_file_io_for_benchmark()
         {
-            Self::load_from_file_for_benchmark(&index_filepath)
+            (Self::load_from_file_for_benchmark(&index_filepath), false)
         } else {
             let texts = if Self::needs_texts() {
                 Some(read_texts(&config))
@@ -55,10 +55,10 @@ pub trait BenchmarkFmIndex: Sized {
                 None
             };
 
-            Self::construct_for_benchmark(&config, texts)
+            (Self::construct_for_benchmark(&config, texts), true)
         };
 
-        let metrics = collect_and_log_after_build_metrics(start);
+        let metrics = collect_and_log_after_build_metrics(start, was_constructed);
 
         (index, metrics)
     }
@@ -134,12 +134,12 @@ pub trait BenchmarkFmIndex: Sized {
 
         let (index, construction_metrics) = Self::construct_or_load_for_benchmark(&config);
 
-        if config.skip_build {
-            result.only_index_in_memory_size_mb = Some(construction_metrics.curr_memory_usage_mb);
-        } else {
+        if construction_metrics.was_constructed {
             result.construction_peak_memory_usage_mb =
                 Some(construction_metrics.peak_memory_usage_mb);
             result.construction_time_secs = Some(construction_metrics.elapsed_time_secs);
+        } else {
+            result.only_index_in_memory_size_mb = Some(construction_metrics.curr_memory_usage_mb);
         }
 
         if config.search_mode == SearchMode::Locate && !Self::supports_locate_for_benchmark() {
@@ -171,10 +171,10 @@ pub struct ConstructionMetrics {
     elapsed_time_secs: f64,
     peak_memory_usage_mb: f64,
     curr_memory_usage_mb: f64,
+    was_constructed: bool,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-#[derive(Clone, Copy)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct SearchMetrics {
     min_time_secs: f64,
     avg_time_secs: f64,
@@ -275,7 +275,10 @@ fn transfrom_seqs(seqs: &mut Vec<Vec<u8>>, name: &str, replacement_symbol: u8, v
     );
 }
 
-fn collect_and_log_after_build_metrics(start: std::time::Instant) -> ConstructionMetrics {
+fn collect_and_log_after_build_metrics(
+    start: std::time::Instant,
+    was_constructed: bool,
+) -> ConstructionMetrics {
     let elapsed_time_secs = start.elapsed().as_millis() as f64 / 1_000.0;
     let peak_memory_usage_mb = process_peak_memory_usage_mb();
     let curr_memory_usage_mb = process_current_memory_usage_mb();
@@ -289,6 +292,7 @@ fn collect_and_log_after_build_metrics(start: std::time::Instant) -> Constructio
         elapsed_time_secs,
         peak_memory_usage_mb,
         curr_memory_usage_mb,
+        was_constructed,
     }
 }
 
