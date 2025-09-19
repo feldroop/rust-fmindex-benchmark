@@ -101,7 +101,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     i = 0
 
     for tuple, left, right in zip(library_config_tuples.copy(), left_metric_values.copy(), right_metric_values.copy()):
-        if left is None or right is None or (plot_kind_name != "Construction" and tuple[0] != 1):
+        if left is None or right is None or (plot_kind_name != "Construction" and tuple[1] != 1):
             library_configs.pop(i)
             left_metric_values.pop(i)
             right_metric_values.pop(i)
