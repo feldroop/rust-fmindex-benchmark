@@ -47,7 +47,11 @@ def parse_library_config(s: str):
     return parsed[0], int(parsed[2])
 
 def library_tuple_to_simple_name(tup):
-    return library_name_to_info[tup[0]][0]
+    name = library_name_to_info[tup[0]][0]
+    if tup[1] > 1:
+        name += f", {tup[1]} threads"
+
+    return name
 
 def library_tuple_to_color(tup):
     info = library_name_to_info[tup[0]]

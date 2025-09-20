@@ -330,7 +330,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "matplotlib" }]
+requires-dist = [{ name = "matplotlib", specifier = ">=3.10" }]
 
 [[package]]
 name = "pyparsing"

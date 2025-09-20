@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Plots for the Rust FM-Index benchmark"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["matplotlib"]
+dependencies = ["matplotlib>=3.10"]
 
 [tool.maturin]
 python-source = "plots"
