@@ -29,14 +29,11 @@ impl BenchmarkFmIndex for BioFmIndex {
 
         // let rank_alphabet = alphabets::Alphabet::new([0, 1, 2, 3, 4, 5]);
 
+        let occ_sampling_rate = 2 * (config.suffix_array_sampling_rate * 6) as u32;
         let suffix_array = suffix_array::suffix_array(&text);
         let bwt = bwt::bwt(&text, &suffix_array);
         let less = bwt::less(&bwt, &alphabet);
-        let occ = Occ::new(
-            &bwt,
-            (config.suffix_array_sampling_rate * 6) as u32,
-            &alphabet,
-        );
+        let occ = Occ::new(&bwt, occ_sampling_rate, &alphabet);
 
         suffix_array.sample(&text, bwt, less, occ, config.suffix_array_sampling_rate)
     }
