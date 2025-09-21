@@ -6,7 +6,8 @@ library_name_to_info = {
     "GenedexFlat64": ("genedex flat64", "blue", "cornflowerblue"),
     "GenedexCond512": ("genedex cond512", "blueviolet", "violet"),
     "Awry": ("awry", "grey", "grey"),
-    "Bio": ("bio", "forestgreen", "forestgreen"),
+    "BioSmall": ("bio small", "limegreen", "limegreen"),
+    "BioLarge": ("bio large", "forestgreen", "forestgreen"),
     "FmIndexSingle": ("fmindex single text", "olive", "olive"),
     "FmIndexMulti": ("fmindex multi text", "darkkhaki", "darkkhaki"),
     "SviewFmIndexVec32": ("sview vec32", "tomato", "tomato"),
@@ -53,24 +54,28 @@ def parse_library_config(s: str):
     parsed = s.split('-')
     return parsed[0], int(parsed[2]), parsed[4]
 
-def library_config_to_simple_name(conf):
+def library_config_to_simple_name(conf, plot_kind_name):
     name = library_name_to_info[conf[0]][0]
-    if conf[1] > 1:
-        name += f", {conf[1]} threads"
-    if conf[2] != "none":
-        name += f", {extra_build_arg_to_name[conf[2]]}"
+    if plot_kind_name == "Construction":
+        if conf[1] > 1:
+            name += f", {conf[1]} threads"
+        if conf[2] != "none":
+            name += f", {extra_build_arg_to_name[conf[2]]}"
     return name
 
-def library_config_to_color(conf):
+def library_config_to_color(conf, plot_kind_name):
     info = library_name_to_info[conf[0]]
 
-    if conf[1] == 1:
+    if conf[1] == 1 or plot_kind_name != "Construction":
         return info[1]
     else:
         return info[2]
     
-def library_config_to_pattern(conf):
-    return extra_build_arg_to_pattern[conf[2]]
+def library_config_to_pattern(conf, plot_kind_name):
+    if plot_kind_name == "Construction":
+        return extra_build_arg_to_pattern[conf[2]]
+    else:
+        return extra_build_arg_to_pattern["none"]
 
 def read_library_configs_and_result_data(input_texts_name: str):
     with open(f"../results/{input_texts_name}.json") as f:
@@ -131,6 +136,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
         return
 
     duo_plot(
+        plot_kind_name,
         library_config_triples,
         left_metric_values,
         right_metric_values,
@@ -142,6 +148,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     )
 
 def duo_plot(
+        plot_kind_name,
         library_config_triples, 
         left_data, 
         right_data, 
@@ -153,9 +160,9 @@ def duo_plot(
     ):
     x = list(range(len(library_config_triples))) 
 
-    library_nice_names = list(map(library_config_to_simple_name, library_config_triples))
-    library_colors = list(map(library_config_to_color, library_config_triples))
-    library_patterns = list(map(library_config_to_pattern, library_config_triples))
+    library_nice_names = list(map(lambda conf: library_config_to_simple_name(conf, plot_kind_name), library_config_triples))
+    library_colors = list(map(lambda conf: library_config_to_color(conf, plot_kind_name), library_config_triples))
+    library_patterns = list(map(lambda conf: library_config_to_pattern(conf, plot_kind_name), library_config_triples))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 7))
     
