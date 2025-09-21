@@ -13,11 +13,10 @@ impl BenchmarkFmIndex for FMIndexCrateFmIndex {
         let text: Vec<_> = texts
             .unwrap()
             .into_iter()
-            .map(|mut t| {
+            .flat_map(|mut t| {
                 t.push(0);
                 t
             })
-            .flatten()
             .collect();
         let text = fm_index::Text::new(text);
 
@@ -33,10 +32,10 @@ impl BenchmarkFmIndex for FMIndexCrateFmIndex {
     }
 
     fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
-        index.search(&query).count()
+        index.search(query).count()
     }
 
     fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
-        index.search(&query).iter_matches().count()
+        index.search(query).iter_matches().count()
     }
 }

@@ -3,19 +3,13 @@ import json
 
 # library -> (nice_name, color, color_with_threads)
 library_name_to_info = {
-    "GenedexI32Flat64": ("genedex flat64 (i32)", "blue", "cornflowerblue"),
-    "GenedexU32Flat64": ("genedex flat64 (u32)", "blue", "cornflowerblue"),
-    "GenedexI64Flat64": ("genedex flat64 (i64)", "blue", "cornflowerblue"),
-    "GenedexI32Cond512": ("genedex cond512 (i32)", "blueviolet", "violet"),
-    "GenedexU32Cond512": ("genedex cond512 (u32)", "blueviolet", "violet"),
-    "GenedexI64Cond512": ("genedex cond512 (i64)", "blueviolet", "violet"),
+    "GenedexFlat64": ("genedex flat64", "blue", "cornflowerblue"),
+    "GenedexCond512": ("genedex cond512", "blueviolet", "violet"),
     "Awry": ("awry", "grey", "grey"),
     "Bio": ("bio", "forestgreen", "forestgreen"),
     "FmIndex": ("fmindex", "olive", "olive"),
-    "SviewFmIndexU32Vec32": ("sview vec32 (u32)", "tomato", "tomato"),
-    "SviewFmIndexU32Vec128": ("sview vec128 (u64)", "orange", "orange"),
-    "SviewFmIndexU64Vec32": ("sview vec32 (u32)", "tomato", "tomato"),
-    "SviewFmIndexU64Vec128": ("sview vec128 (u64)", "orange", "orange"),
+    "SviewFmIndexVec32": ("sview vec32", "tomato", "tomato"),
+    "SviewFmIndexVec128": ("sview vec128", "orange", "orange"),
 }
 
 # for now, only do plots with query length 50
@@ -36,30 +30,44 @@ metric_to_metric_name = {
     "only_index_in_memory_size_mb": "index memory usage",
 }
 
+extra_build_arg_to_name = {
+    "LowMemory": "low memory",
+}
+
+extra_build_arg_to_pattern = {
+    "LowMemory": "//",
+    "none": "",
+}
+
 def metric_name_to_unit(metric_name: str):
     if metric_name.endswith("running time"):
         return "seconds"
     elif metric_name.endswith("memory usage"):
         return "gigabytes"
 
+# parses to (library name/id, build_num_threads, extra_build_arg)
 def parse_library_config(s: str):
     parsed = s.split('-')
-    return parsed[0], int(parsed[2])
+    return parsed[0], int(parsed[2]), parsed[4]
 
-def library_tuple_to_simple_name(tup):
-    name = library_name_to_info[tup[0]][0]
-    if tup[1] > 1:
-        name += f", {tup[1]} threads"
-
+def library_config_to_simple_name(conf):
+    name = library_name_to_info[conf[0]][0]
+    if conf[1] > 1:
+        name += f", {conf[1]} threads"
+    if conf[2] != "none":
+        name += f", {extra_build_arg_to_name[conf[2]]}"
     return name
 
-def library_tuple_to_color(tup):
-    info = library_name_to_info[tup[0]]
+def library_config_to_color(conf):
+    info = library_name_to_info[conf[0]]
 
-    if tup[1] == 1:
+    if conf[1] == 1:
         return info[1]
     else:
         return info[2]
+    
+def library_config_to_pattern(conf):
+    return extra_build_arg_to_pattern[conf[2]]
 
 def read_library_configs_and_result_data(input_texts_name: str):
     with open(f"../results/{input_texts_name}.json") as f:
@@ -90,7 +98,7 @@ def extract_metric(metric: str, result: dict, unit: str):
 
 def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     library_configs, results_data = read_library_configs_and_result_data(input_texts_name)
-    library_config_tuples = list(map(parse_library_config, library_configs))
+    library_config_triples = list(map(parse_library_config, library_configs))
     
     left_metric, right_metric = plot_kind_name_to_metrics[plot_kind_name]
 
@@ -104,19 +112,23 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     
     i = 0
 
-    for tup, left, right in zip(library_config_tuples.copy(), left_metric_values.copy(), right_metric_values.copy()):
-        if left is None or right is None or (plot_kind_name != "Construction" and tup[1] != 1):
-            library_config_tuples.pop(i)
+    # to filter out different build configs for plots other than construction
+    existing_libraries = set() 
+
+    for conf, left, right in zip(library_config_triples.copy(), left_metric_values.copy(), right_metric_values.copy()):
+        if left is None or right is None or (plot_kind_name != "Construction" and conf[0] in existing_libraries):
+            library_config_triples.pop(i)
             left_metric_values.pop(i)
             right_metric_values.pop(i)
         else:
             i += 1
+            existing_libraries.add(conf[0])
     
-    if len(library_config_tuples) == 0:
+    if len(library_config_triples) == 0:
         return
 
     duo_plot(
-        library_config_tuples,
+        library_config_triples,
         left_metric_values,
         right_metric_values,
         f"{plot_kind_name}-{input_texts_name}",
@@ -127,7 +139,7 @@ def duo_plot_for_run(plot_kind_name: str, input_texts_name: str):
     )
 
 def duo_plot(
-        library_config_tuples, 
+        library_config_triples, 
         left_data, 
         right_data, 
         name,
@@ -136,22 +148,23 @@ def duo_plot(
         left_unit,
         right_unit,
     ):
-    x = list(range(len(library_config_tuples)))
+    x = list(range(len(library_config_triples))) 
 
-    library_nice_names = list(map(library_tuple_to_simple_name , library_config_tuples))
-    library_colors = list(map(library_tuple_to_color , library_config_tuples))
+    library_nice_names = list(map(library_config_to_simple_name, library_config_triples))
+    library_colors = list(map(library_config_to_color, library_config_triples))
+    library_patterns = list(map(library_config_to_pattern, library_config_triples))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 7))
     
     bar_label_fmt = "{:.2f}"
 
-    bars1 = ax1.bar(x, left_data, color=library_colors)
+    bars1 = ax1.bar(x, left_data, color=library_colors, hatch=library_patterns)
     ax1.set_title(f"{left_metric_name} in {left_unit}")
     ax1.set_xticks([]) 
     ax1.bar_label(bars1, fmt=bar_label_fmt)
     ax1.set_ylabel(left_unit)
 
-    bars2 = ax2.bar(x, right_data, color=library_colors)
+    bars2 = ax2.bar(x, right_data, color=library_colors, hatch=library_patterns)
     ax2.set_title(f"{right_metric_name} in {right_unit}")
     ax2.set_xticks([]) 
     ax2.bar_label(bars2, fmt=bar_label_fmt)
@@ -167,7 +180,6 @@ def duo_plot(
         ncol = 3
     )
 
-    # fig.tight_layout()
     fig.savefig(f"img/{name}.svg", bbox_inches="tight")
 
 def all_plots_for(input_texts_name):
@@ -175,7 +187,7 @@ def all_plots_for(input_texts_name):
         try: 
             duo_plot_for_run(plot, input_texts_name)
         except Exception as e:
-            print(f"An error occurred when trying to read the benchmarks JSON file for {input_texts_name}.\n{e}")
+            print(f"An error occurred when trying to generate the plots for {input_texts_name}.\n{e}")
             return
 
 def main():

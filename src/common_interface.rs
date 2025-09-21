@@ -50,12 +50,12 @@ pub trait BenchmarkFmIndex: Sized {
             (Self::load_from_file_for_benchmark(&index_filepath), false)
         } else {
             let texts = if Self::needs_texts() {
-                Some(read_texts(&config))
+                Some(read_texts(config))
             } else {
                 None
             };
 
-            (Self::construct_for_benchmark(&config, texts), true)
+            (Self::construct_for_benchmark(config, texts), true)
         };
 
         let metrics = collect_and_log_after_build_metrics(start, was_constructed);
@@ -64,7 +64,7 @@ pub trait BenchmarkFmIndex: Sized {
     }
 
     fn run_search_benchmark(&self, config: &Config) -> SearchMetrics {
-        let queries = read_queries(&config);
+        let queries = read_queries(config);
 
         let mut total_num_hits = 0;
         let mut running_times_secs = Vec::new();
@@ -77,8 +77,8 @@ pub trait BenchmarkFmIndex: Sized {
 
             for query in &queries {
                 total_num_hits += match config.search_mode {
-                    SearchMode::Count => Self::count_for_benchmark(&stub, &query),
-                    SearchMode::Locate => Self::count_via_locate_for_benchmark(&stub, &query),
+                    SearchMode::Count => Self::count_for_benchmark(&stub, query),
+                    SearchMode::Locate => Self::count_via_locate_for_benchmark(&stub, query),
                 };
             }
 
@@ -132,7 +132,7 @@ pub trait BenchmarkFmIndex: Sized {
     fn run_benchmark(config: &Config) -> BenchmarkResult {
         let mut result = BenchmarkResult::new_empty(config.clone());
 
-        let (index, construction_metrics) = Self::construct_or_load_for_benchmark(&config);
+        let (index, construction_metrics) = Self::construct_or_load_for_benchmark(config);
 
         if construction_metrics.was_constructed {
             result.construction_peak_memory_usage_mb =
@@ -145,7 +145,7 @@ pub trait BenchmarkFmIndex: Sized {
         if config.search_mode == SearchMode::Locate && !Self::supports_locate_for_benchmark() {
             info!("Currently, {} does not support locate.", config.library);
         } else {
-            let search_metrics = index.run_search_benchmark(&config);
+            let search_metrics = index.run_search_benchmark(config);
 
             result
                 .search_metrics
@@ -153,7 +153,7 @@ pub trait BenchmarkFmIndex: Sized {
         }
 
         if Self::supports_file_io_for_benchmark() {
-            let file_io_metrics = index.run_io_benchmark(&config);
+            let file_io_metrics = index.run_io_benchmark(config);
 
             result.read_from_file_time_secs = file_io_metrics.map(|m| m.read_secs);
             result.write_to_file_time_secs = file_io_metrics.map(|m| m.write_secs);
@@ -186,10 +186,9 @@ pub struct FileIoMetrics {
 fn read_texts(config: &Config) -> Vec<Vec<u8>> {
     let start = std::time::Instant::now();
 
-    let reader = bio::io::fasta::Reader::from_file(&config.input_texts.get_filepath()).unwrap();
-    let mut seqs = reader
+    let reader = bio::io::fasta::Reader::from_file(config.input_texts.get_filepath()).unwrap();
+    let mut seqs: Vec<_> = reader
         .records()
-        .into_iter()
         .map(|r| r.unwrap().seq().to_vec())
         .collect();
 
@@ -212,10 +211,10 @@ fn read_queries(config: &Config) -> Vec<Vec<u8>> {
     let mut seqs = Vec::new();
 
     for (i, record) in reader.records().enumerate() {
-        if let Some(n) = config.num_queries_records {
-            if i == n {
-                break;
-            }
+        if let Some(n) = config.num_queries_records
+            && i == n
+        {
+            break;
         }
 
         let record = record.unwrap();
@@ -238,7 +237,7 @@ fn read_queries(config: &Config) -> Vec<Vec<u8>> {
     seqs
 }
 
-fn transfrom_seqs(seqs: &mut Vec<Vec<u8>>, name: &str, replacement_symbol: u8, verbose: bool) {
+fn transfrom_seqs(seqs: &mut [Vec<u8>], name: &str, replacement_symbol: u8, verbose: bool) {
     let mut translation_table: Vec<_> = (0u8..=255).collect();
     for degenerate_symbol in b"rRyYkKMmSsWwBbDdHhVvNn".iter().copied() {
         translation_table[degenerate_symbol as usize] = replacement_symbol;

@@ -75,10 +75,10 @@ impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMInd
     }
 
     fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
-        index.count(&query).as_usize()
+        index.count(query).as_usize()
     }
 
     fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
-        index.locate(&query).len()
+        index.locate(query).len()
     }
 }

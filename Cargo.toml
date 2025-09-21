@@ -15,7 +15,7 @@ strum = { version = "0.27", features = ["derive"] }
 # genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "877f62c1ab52432e54e5a4ce2b9bd00e6f488873" }
 genedex = { version = "0.1.0", path = "../genedex" }
 
-bio = "2.3"
+bio = "3"
 bincode = { version = "2", features = ["serde"] }
 
 awry = "0.3"
@@ -33,5 +33,5 @@ windows = { version = "0.62", features = [
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-[profile.release]
-debug = true
+# [profile.release]
+# debug = true

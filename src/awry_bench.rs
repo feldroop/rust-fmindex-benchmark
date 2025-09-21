@@ -53,7 +53,7 @@ impl BenchmarkFmIndex for AwryFmIndex {
 
     fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
         let query = str::from_utf8(query).unwrap();
-        index.locate_string(&query).len()
+        index.locate_string(query).len()
     }
 
     fn supports_locate_for_benchmark() -> bool {

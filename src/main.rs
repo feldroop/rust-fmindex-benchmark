@@ -9,7 +9,7 @@ use crate::common_interface::{BenchmarkFmIndex, SearchMetrics};
 use clap::{Parser, ValueEnum};
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, convert::identity, fs::File, path::PathBuf};
+use std::{collections::HashMap, convert::identity, fmt::Display, fs::File, path::PathBuf};
 use strum::Display;
 
 #[derive(Serialize, Deserialize, Debug, Parser, Clone, PartialEq, Eq)]
@@ -28,6 +28,9 @@ struct Config {
     #[arg(short = 't', long, default_value_t = 1)]
     build_thread_count: u16,
 
+    #[arg(short, long)]
+    extra_build_arg: Option<ExtraBuildArg>,
+
     #[arg(short, long, default_value = "data/reads.fastq")]
     queries_path: PathBuf,
 
@@ -37,7 +40,7 @@ struct Config {
     #[arg(short, long)]
     length_of_queries: Option<usize>,
 
-    #[arg(short = 'o', long, default_value_t = SearchMode::Locate)]
+    #[arg(short = 'o', long, default_value = "locate")]
     search_mode: SearchMode,
 
     #[arg(short, long, default_value_t = 5)]
@@ -51,6 +54,11 @@ struct Config {
 
     #[arg(short, long)]
     verbose: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Display)]
+enum ExtraBuildArg {
+    LowMemory,
 }
 
 impl Config {
@@ -80,16 +88,17 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
 struct SearchConfig {
     search_mode: SearchMode,
     num_queries_records: Option<usize>,
     length_of_queries: Option<usize>,
 }
 
-impl ToString for SearchConfig {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for SearchConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "{}-{}-{}",
             self.search_mode,
             self.num_queries_records
@@ -121,19 +130,13 @@ impl InputTexts {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, Display)]
 enum Library {
-    GenedexI32Flat64,
-    GenedexU32Flat64,
-    GenedexI64Flat64,
-    GenedexI32Cond512,
-    GenedexU32Cond512,
-    GenedexI64Cond512,
+    GenedexFlat64,
+    GenedexCond512,
     Bio,
     Awry,
     FmIndex,
-    SviewFmIndexU32Vec32,
-    SviewFmIndexU32Vec128,
-    SviewFmIndexU64Vec32,
-    SviewFmIndexU64Vec128,
+    SviewFmIndexVec32,
+    SviewFmIndexVec128,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, Display)]
@@ -224,31 +227,32 @@ fn main() {
         info!("Configuration: {:#?}", config);
     }
 
-    let result = match config.library {
-        Library::GenedexI32Flat64 => genedex::FmIndexFlat64::<i32>::run_benchmark(&config),
-        Library::GenedexU32Flat64 => genedex::FmIndexFlat64::<u32>::run_benchmark(&config),
-        Library::GenedexI64Flat64 => genedex::FmIndexFlat64::<i64>::run_benchmark(&config),
-        Library::GenedexI32Cond512 => genedex::FmIndexCondensed512::<i32>::run_benchmark(&config),
-        Library::GenedexU32Cond512 => genedex::FmIndexCondensed512::<u32>::run_benchmark(&config),
-        Library::GenedexI64Cond512 => genedex::FmIndexCondensed512::<i64>::run_benchmark(&config),
-        Library::Bio => bio_bench::BioFmIndex::run_benchmark(&config),
-        Library::Awry => awry_bench::AwryFmIndex::run_benchmark(&config),
-        Library::FmIndex => fmindex_bench::FMIndexCrateFmIndex::run_benchmark(&config),
-        Library::SviewFmIndexU32Vec32 => {
-            sview_fmindex_bench::SViewFMIndex::<u32, u32>::run_benchmark(&config)
-        }
-        Library::SviewFmIndexU32Vec128 => {
-            sview_fmindex_bench::SViewFMIndex::<u32, u128>::run_benchmark(&config)
-        }
-        Library::SviewFmIndexU64Vec32 => {
-            sview_fmindex_bench::SViewFMIndex::<u64, u32>::run_benchmark(&config)
-        }
-        Library::SviewFmIndexU64Vec128 => {
-            sview_fmindex_bench::SViewFMIndex::<u64, u128>::run_benchmark(&config)
-        }
+    let result = match config.input_texts {
+        InputTexts::Chromosome => run_benchmark_for_index_type::<i32, u32>(&config),
+        InputTexts::I32 => run_benchmark_for_index_type::<i32, u32>(&config),
+        InputTexts::Hg38 => run_benchmark_for_index_type::<u32, u32>(&config),
+        InputTexts::DoubleHg38 => run_benchmark_for_index_type::<i64, u64>(&config),
     };
 
     update_stored_results(result, config);
+}
+
+fn run_benchmark_for_index_type<G: genedex::IndexStorage, S: sview_fmindex::Position + 'static>(
+    config: &Config,
+) -> BenchmarkResult {
+    match config.library {
+        Library::GenedexFlat64 => genedex::FmIndexFlat64::<G>::run_benchmark(config),
+        Library::GenedexCond512 => genedex::FmIndexCondensed512::<G>::run_benchmark(config),
+        Library::Bio => bio_bench::BioFmIndex::run_benchmark(config),
+        Library::Awry => awry_bench::AwryFmIndex::run_benchmark(config),
+        Library::FmIndex => fmindex_bench::FMIndexCrateFmIndex::run_benchmark(config),
+        Library::SviewFmIndexVec32 => {
+            sview_fmindex_bench::SViewFMIndex::<S, u32>::run_benchmark(config)
+        }
+        Library::SviewFmIndexVec128 => {
+            sview_fmindex_bench::SViewFMIndex::<S, u128>::run_benchmark(config)
+        }
+    }
 }
 
 fn setup_input_data() {
@@ -317,7 +321,7 @@ fn update_stored_results(result: BenchmarkResult, config: Config) {
         };
 
     let existing_result = results
-        .entry(key_to_string(config.library, config.build_thread_count))
+        .entry(key_to_string(&config))
         .or_insert_with(|| BenchmarkResult::new_empty(config));
 
     existing_result.update(result);
@@ -327,6 +331,13 @@ fn update_stored_results(result: BenchmarkResult, config: Config) {
     serde_json::to_writer_pretty(file, &results).unwrap();
 }
 
-fn key_to_string(library: Library, build_num_threads: u16) -> String {
-    format!("{library}-threads-{build_num_threads}")
+fn key_to_string(config: &Config) -> String {
+    format!(
+        "{}-threads-{}-arg-{}",
+        config.library,
+        config.build_thread_count,
+        config
+            .extra_build_arg
+            .map_or_else(|| "none".to_string(), |arg| arg.to_string())
+    )
 }
