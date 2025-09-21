@@ -134,7 +134,8 @@ enum Library {
     GenedexCond512,
     Bio,
     Awry,
-    FmIndex,
+    FmIndexSingle,
+    FmIndexMulti,
     SviewFmIndexVec32,
     SviewFmIndexVec128,
 }
@@ -245,7 +246,8 @@ fn run_benchmark_for_index_type<G: genedex::IndexStorage, S: sview_fmindex::Posi
         Library::GenedexCond512 => genedex::FmIndexCondensed512::<G>::run_benchmark(config),
         Library::Bio => bio_bench::BioFmIndex::run_benchmark(config),
         Library::Awry => awry_bench::AwryFmIndex::run_benchmark(config),
-        Library::FmIndex => fmindex_bench::FMIndexCrateFmIndex::run_benchmark(config),
+        Library::FmIndexSingle => fmindex_bench::FMIndexCrateSingleFmIndex::run_benchmark(config),
+        Library::FmIndexMulti => fmindex_bench::FMIndexCrateMultiFmIndex::run_benchmark(config),
         Library::SviewFmIndexVec32 => {
             sview_fmindex_bench::SViewFMIndex::<S, u32>::run_benchmark(config)
         }

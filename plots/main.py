@@ -7,7 +7,8 @@ library_name_to_info = {
     "GenedexCond512": ("genedex cond512", "blueviolet", "violet"),
     "Awry": ("awry", "grey", "grey"),
     "Bio": ("bio", "forestgreen", "forestgreen"),
-    "FmIndex": ("fmindex", "olive", "olive"),
+    "FmIndexSingle": ("fmindex single text", "olive", "olive"),
+    "FmIndexMulti": ("fmindex multi text", "darkkhaki", "darkkhaki"),
     "SviewFmIndexVec32": ("sview vec32", "tomato", "tomato"),
     "SviewFmIndexVec128": ("sview vec128", "orange", "orange"),
 }
