@@ -59,6 +59,7 @@ struct Config {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Display)]
 enum ExtraBuildArg {
     LowMemory,
+    MediumMemory,
 }
 
 impl Config {

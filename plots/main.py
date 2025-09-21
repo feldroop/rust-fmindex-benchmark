@@ -33,10 +33,12 @@ metric_to_metric_name = {
 
 extra_build_arg_to_name = {
     "LowMemory": "low memory",
+    "MediumMemory": "medium memory",
 }
 
 extra_build_arg_to_pattern = {
     "LowMemory": "//",
+    "MediumMemory": "oo",
     "none": "",
 }
 

@@ -14,7 +14,7 @@ run-all mode="twice":
     # these are mainly for debugging
     # just {{mode}} genedex-flat64 -i chromosome {{args}} -t 8
     # just {{mode}} genedex-cond512 -i chromosome {{args}} -t 8
-    # just {{mode}} genedex-cond512 -i chromosome {{args}} -t 8 -e low-memory
+    just {{mode}} genedex-cond512 -i chromosome {{args}} -t 8 -e medium-memory
  
     # just {{mode}} bio -i i32 {{args}}
     # just {{mode}} fm-index-single -i i32 {{args}}
@@ -23,9 +23,9 @@ run-all mode="twice":
     # just {{mode}} genedex-flat64 -i i32 {{args}} -t 8
     # just {{mode}} genedex-cond512 -i i32 {{args}}
     # just {{mode}} genedex-cond512 -i i32 {{args}} -t 8
-    # just {{mode}} genedex-cond512 -i i32 {{args}} -t 8 -e low-memory
-    # just {{mode}} sview-fm-index-u32-vec32 -i i32 {{args}}
-    # just {{mode}} sview-fm-index-u32-vec128 -i i32 {{args}}
+    # just {{mode}} genedex-cond512 -i i32 {{args}} -t 8 -e medium-memory
+    # just {{mode}} sview-fm-index-vec32 -i i32 {{args}}
+    # just {{mode}} sview-fm-index-vec128 -i i32 {{args}}
 
     # just {{mode}} bio -i hg38 {{args}}
     # just {{mode}} fm-index-single -i hg38 {{args}}
@@ -35,12 +35,13 @@ run-all mode="twice":
     # just {{mode}} genedex-cond512 -i hg38 {{args}}
     # just {{mode}} genedex-cond512 -i hg38 {{args}} -t 8
     # just {{mode}} genedex-cond512 -i hg38 {{args}} -t 8 -e low-memory
+    # just {{mode}} genedex-cond512 -i hg38 {{args}} -t 8 -e medium-memory
     # just {{mode}} sview-fm-index-vec32 -i hg38 {{args}}
     # just {{mode}} sview-fm-index-vec128 -i hg38 {{args}}
 
     # just {{mode}} genedex-flat64 -i double-hg38 {{args}} -t 8
     # just {{mode}} genedex-cond512 -i double-hg38 {{args}} -t 8
-    # just {{mode}} genedex-cond512 -i double-hg38 {{args}} -t 8 -e low-memory
+    # just {{mode}} genedex-cond512 -i double-hg38 {{args}} -t 8 -e medium-memory
     # just {{mode}} sview-fm-index-vec32 -i double-hg38 {{args}}
     # just {{mode}} sview-fm-index-vec128 -i double-hg38 {{args}}
     

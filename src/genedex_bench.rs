@@ -13,6 +13,7 @@ impl<I: IndexStorage, R: TextWithRankSupport<I>> BenchmarkFmIndex for GenedexFMI
     fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self {
         let performance_priority = match config.extra_build_arg {
             Some(ExtraBuildArg::LowMemory) => PerformancePriority::LowMemory,
+            Some(ExtraBuildArg::MediumMemory) => PerformancePriority::Balanced,
             _ => PerformancePriority::HighSpeed,
         };
 
