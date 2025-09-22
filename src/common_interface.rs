@@ -18,7 +18,7 @@ pub trait BenchmarkFmIndex: Sized {
 
     fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize;
 
-    fn supports_file_io_for_benchmark() -> bool {
+    fn supports_file_io_for_benchmark(_config: &Config) -> bool {
         false
     }
 
@@ -45,7 +45,7 @@ pub trait BenchmarkFmIndex: Sized {
         let start = std::time::Instant::now();
         let (index, was_constructed) = if config.skip_build
             && std::fs::exists(&index_filepath).unwrap()
-            && Self::supports_file_io_for_benchmark()
+            && Self::supports_file_io_for_benchmark(config)
         {
             (Self::load_from_file_for_benchmark(&index_filepath), false)
         } else {
@@ -152,7 +152,7 @@ pub trait BenchmarkFmIndex: Sized {
                 .insert(config.search_config().to_string(), search_metrics);
         }
 
-        if Self::supports_file_io_for_benchmark() {
+        if Self::supports_file_io_for_benchmark(config) {
             let file_io_metrics = index.run_io_benchmark(config);
 
             result.read_from_file_time_secs = file_io_metrics.map(|m| m.read_secs);

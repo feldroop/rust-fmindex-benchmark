@@ -15,8 +15,6 @@ run-all mode="twice":
     # just {{mode}} genedex-flat64 -i chromosome {{args}} -t 8
     # just {{mode}} genedex-cond512 -i chromosome {{args}} -t 8
     # just {{mode}} genedex-cond512 -i chromosome {{args}} -t 8 -e medium-memory
-    just {{mode}} bio-small -i chromosome {{args}}
-    just {{mode}} bio-large -i chromosome {{args}}
 
     # just {{mode}} bio-small -i i32 {{args}}
     # just {{mode}} bio-large -i i32 {{args}}
@@ -49,6 +47,7 @@ run-all mode="twice":
     
     # excluded for now due to segmentation fault issues
     # just {{mode}} awry -i i32 {{args}}
+    # just {{mode}} awry -i hg38 {{args}}
 
 twice +ARGS:
     cargo run --release -- {{ARGS}} -f

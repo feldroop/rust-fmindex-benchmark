@@ -24,7 +24,7 @@ impl<I: IndexStorage, R: TextWithRankSupport<I>> BenchmarkFmIndex for GenedexFMI
             .construct_index(texts.unwrap(), alphabet::ascii_dna_with_n())
     }
 
-    fn supports_file_io_for_benchmark() -> bool {
+    fn supports_file_io_for_benchmark(_config: &Config) -> bool {
         true
     }
 

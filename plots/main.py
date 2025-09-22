@@ -166,7 +166,7 @@ def duo_plot(
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 7))
     
-    bar_label_fmt = "{:.2f}"
+    bar_label_fmt = "{:.1f}"
 
     bars1 = ax1.bar(x, left_data, color=library_colors, hatch=library_patterns)
     ax1.set_title(f"{left_metric_name} in {left_unit}")

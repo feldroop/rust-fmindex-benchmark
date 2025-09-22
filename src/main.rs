@@ -246,8 +246,8 @@ fn run_benchmark_for_index_type<G: genedex::IndexStorage, S: sview_fmindex::Posi
     match config.library {
         Library::GenedexFlat64 => genedex::FmIndexFlat64::<G>::run_benchmark(config),
         Library::GenedexCond512 => genedex::FmIndexCondensed512::<G>::run_benchmark(config),
-        Library::BioLarge => bio_bench::BioFmIndex::<1>::run_benchmark(config),
-        Library::BioSmall => bio_bench::BioFmIndex::<2>::run_benchmark(config),
+        Library::BioLarge => bio_bench::BioFmIndex::<2>::run_benchmark(config),
+        Library::BioSmall => bio_bench::BioFmIndex::<4>::run_benchmark(config),
         Library::Awry => awry_bench::AwryFmIndex::run_benchmark(config),
         Library::FmIndexSingle => fmindex_bench::FMIndexCrateSingleFmIndex::run_benchmark(config),
         Library::FmIndexMulti => fmindex_bench::FMIndexCrateMultiFmIndex::run_benchmark(config),

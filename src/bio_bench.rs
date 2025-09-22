@@ -31,7 +31,7 @@ impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
 
         // let rank_alphabet = alphabets::Alphabet::new([0, 1, 2, 3, 4, 5]);
 
-        let occ_sampling_rate = (R * config.suffix_array_sampling_rate * 6) as u32;
+        let occ_sampling_rate = (R * config.suffix_array_sampling_rate * alphabet.len()) as u32;
         let suffix_array = suffix_array::suffix_array(&text);
         let bwt = bwt::bwt(&text, &suffix_array);
         let less = bwt::less(&bwt, &alphabet);
@@ -42,8 +42,14 @@ impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
         }
     }
 
-    fn supports_file_io_for_benchmark() -> bool {
-        true
+    fn supports_file_io_for_benchmark(config: &Config) -> bool {
+        // the bio IO is super slow due to serde usage, I couldn't find a fast (de)serializer
+        match config.input_texts {
+            crate::InputTexts::Chromosome => true,
+            crate::InputTexts::I32 => true,
+            crate::InputTexts::Hg38 => false,
+            crate::InputTexts::DoubleHg38 => false,
+        }
     }
 
     fn write_to_file_for_benchmark(self, path: &Path) {

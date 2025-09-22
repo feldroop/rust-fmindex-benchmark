@@ -53,7 +53,7 @@ impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMInd
         }
     }
 
-    fn supports_file_io_for_benchmark() -> bool {
+    fn supports_file_io_for_benchmark(_config: &Config) -> bool {
         true
     }
 

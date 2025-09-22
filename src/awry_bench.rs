@@ -30,7 +30,7 @@ impl BenchmarkFmIndex for AwryFmIndex {
         fm_index::FmIndex::new(&build_args).unwrap()
     }
 
-    fn supports_file_io_for_benchmark() -> bool {
+    fn supports_file_io_for_benchmark(_config: &Config) -> bool {
         true
     }
 
