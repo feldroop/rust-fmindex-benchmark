@@ -4,6 +4,7 @@ import json
 # library -> (nice_name, color, color_with_threads)
 library_name_to_info = {
     "GenedexFlat64": ("genedex flat64", "blue", "cornflowerblue"),
+    "GenedexCond64": ("genedex cond64", "blueviolet", "violet"),
     "GenedexCond512": ("genedex cond512", "blueviolet", "violet"),
     "Awry": ("awry", "grey", "grey"),
     "BioSmall": ("bio small", "limegreen", "limegreen"),
@@ -39,7 +40,7 @@ extra_build_arg_to_name = {
 
 extra_build_arg_to_pattern = {
     "LowMemory": "//",
-    "MediumMemory": "oo",
+    "MediumMemory": "++",
     "none": "",
 }
 

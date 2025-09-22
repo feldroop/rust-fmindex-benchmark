@@ -132,6 +132,7 @@ impl InputTexts {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, Display)]
 enum Library {
     GenedexFlat64,
+    GenedexCond64,
     GenedexCond512,
     BioSmall,
     BioLarge,
@@ -245,6 +246,7 @@ fn run_benchmark_for_index_type<G: genedex::IndexStorage, S: sview_fmindex::Posi
 ) -> BenchmarkResult {
     match config.library {
         Library::GenedexFlat64 => genedex::FmIndexFlat64::<G>::run_benchmark(config),
+        Library::GenedexCond64 => genedex::FmIndexCondensed64::<G>::run_benchmark(config),
         Library::GenedexCond512 => genedex::FmIndexCondensed512::<G>::run_benchmark(config),
         Library::BioLarge => bio_bench::BioFmIndex::<2>::run_benchmark(config),
         Library::BioSmall => bio_bench::BioFmIndex::<4>::run_benchmark(config),
