@@ -5,7 +5,7 @@ import json
 library_name_to_info = {
     "GenedexFlat64": ("genedex flat64", "blue", "cornflowerblue"),
     "GenedexCond64": ("genedex cond64", "blueviolet", "violet"),
-    "GenedexCond512": ("genedex cond512", "blueviolet", "violet"),
+    "GenedexCond512": ("genedex cond512", "mediumvioletred", "hotpink"),
     "Awry": ("awry", "grey", "grey"),
     "BioSmall": ("bio small", "limegreen", "limegreen"),
     "BioLarge": ("bio large", "forestgreen", "forestgreen"),

@@ -19,7 +19,6 @@ run-all mode="twice":
 
     # just {{mode}} bio-small -i i32 {{args}}
     # just {{mode}} bio-large -i i32 {{args}}
-    # just {{mode}} fm-index-single -i i32 {{args}}
     # just {{mode}} fm-index-multi -i i32 {{args}}
     # just {{mode}} genedex-flat64 -i i32 {{args}} -t 8
     # just {{mode}} genedex-cond64 -i i32 {{args}} -t 8
@@ -31,7 +30,6 @@ run-all mode="twice":
 
     # just {{mode}} bio-small -i hg38 {{args}}
     # just {{mode}} bio-large -i hg38 {{args}}
-    # just {{mode}} fm-index-single -i hg38 {{args}}
     # just {{mode}} fm-index-multi -i hg38 {{args}}
     # just {{mode}} genedex-flat64 -i hg38 {{args}} -t 8
     # just {{mode}} genedex-cond64 -i hg38 {{args}} -t 8
@@ -48,6 +46,10 @@ run-all mode="twice":
     # just {{mode}} genedex-cond512 -i double-hg38 {{args}} -t 8 -e medium-memory
     # just {{mode}} sview-fm-index-vec32 -i double-hg38 {{args}}
     # just {{mode}} sview-fm-index-vec128 -i double-hg38 {{args}}
+
+    # excluded because it did not provide a speed or memory benefit
+    # just {{mode}} fm-index-single -i i32 {{args}}
+    # just {{mode}} fm-index-single -i hg38 {{args}}
     
     # excluded for now due to segmentation fault issues
     # just {{mode}} awry -i i32 {{args}}
