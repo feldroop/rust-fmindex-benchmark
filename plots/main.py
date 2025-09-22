@@ -66,7 +66,7 @@ def library_config_to_simple_name(conf, plot_kind_name):
 def library_config_to_color(conf, plot_kind_name):
     info = library_name_to_info[conf[0]]
 
-    if conf[1] == 1 or plot_kind_name != "Construction":
+    if conf[1] == 1 and plot_kind_name == "Construction":
         return info[1]
     else:
         return info[2]
