@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import json
+import math
 
 # library -> (nice_name, color, color_with_threads)
 library_name_to_info = {
@@ -159,27 +160,31 @@ def duo_plot(
         left_unit,
         right_unit,
     ):
-    x = list(range(len(library_config_triples))) 
+    n = len(library_config_triples)
+    x = list(reversed(range(n)))
 
     library_nice_names = list(map(lambda conf: library_config_to_simple_name(conf, plot_kind_name), library_config_triples))
     library_colors = list(map(lambda conf: library_config_to_color(conf, plot_kind_name), library_config_triples))
     library_patterns = list(map(lambda conf: library_config_to_pattern(conf, plot_kind_name), library_config_triples))
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 7))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 7))
     
     bar_label_fmt = "{:.1f}"
+    label_padding = 2
 
-    bars1 = ax1.bar(x, left_data, color=library_colors, hatch=library_patterns)
+    bars1 = ax1.barh(x, left_data, color=library_colors, hatch=library_patterns)
     ax1.set_title(f"{left_metric_name} in {left_unit}")
-    ax1.set_xticks([]) 
-    ax1.bar_label(bars1, fmt=bar_label_fmt)
-    ax1.set_ylabel(left_unit)
+    ax1.set_yticks([]) 
+    ax1.bar_label(bars1, fmt=bar_label_fmt, padding=label_padding)
+    ax1.set_xlabel(left_unit)
+    ax1.margins(x=0.15)
 
-    bars2 = ax2.bar(x, right_data, color=library_colors, hatch=library_patterns)
+    bars2 = ax2.barh(x, right_data, color=library_colors, hatch=library_patterns)
     ax2.set_title(f"{right_metric_name} in {right_unit}")
-    ax2.set_xticks([]) 
-    ax2.bar_label(bars2, fmt=bar_label_fmt)
-    ax2.set_ylabel(right_unit)
+    ax2.set_yticks([]) 
+    ax2.bar_label(bars2, fmt=bar_label_fmt, padding=label_padding)
+    ax2.set_xlabel(right_unit)
+    ax2.margins(x=0.15)
 
     fig.subplots_adjust(top=0.70)
     fig.legend(
@@ -188,9 +193,10 @@ def duo_plot(
         bbox_to_anchor=(0, 0.75, 1, 0.2),
         bbox_transform=fig.transFigure, 
         loc="lower center", 
-        ncol = 3
+        ncol = math.floor(n / 3)
     )
 
+    fig.tight_layout(rect=[0, 0, 1, 0.75])
     fig.savefig(f"img/{name}.svg", bbox_inches="tight")
 
 def all_plots_for(input_texts_name):
