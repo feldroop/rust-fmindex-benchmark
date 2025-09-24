@@ -8,7 +8,7 @@ use genedex::{FmIndex, FmIndexConfig, IndexStorage, PerformancePriority, alphabe
 pub type GenedexFMIndex<I, R> = FmIndex<I, R>;
 
 impl<I: IndexStorage, R: TextWithRankSupport<I>> BenchmarkFmIndex for GenedexFMIndex<I, R> {
-    type Stub<'a> = &'a Self;
+    type IndexRef<'a> = &'a Self;
 
     fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self {
         let performance_priority = match config.extra_build_arg {
@@ -36,15 +36,29 @@ impl<I: IndexStorage, R: TextWithRankSupport<I>> BenchmarkFmIndex for GenedexFMI
         Self::load_from_file(path).unwrap()
     }
 
-    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a> {
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::IndexRef<'a> {
         self
     }
 
-    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         index.count(query)
     }
 
-    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_via_locate_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         index.locate(query).count()
+    }
+
+    fn count_many_for_benchmark<'a>(index: &Self::IndexRef<'a>, queries: &[Vec<u8>]) -> usize {
+        index.count_many(queries.iter().map(|q| q.as_slice())).sum()
+    }
+
+    fn count_many_via_locate_for_benchmark<'a>(
+        index: &Self::IndexRef<'a>,
+        queries: &[Vec<u8>],
+    ) -> usize {
+        index
+            .locate_many(queries.iter().map(|q| q.as_slice()))
+            .map(|hits| hits.count())
+            .sum()
     }
 }

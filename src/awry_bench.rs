@@ -10,7 +10,7 @@ use awry::{alphabet, fm_index};
 pub type AwryFmIndex = awry::fm_index::FmIndex;
 
 impl BenchmarkFmIndex for AwryFmIndex {
-    type Stub<'a> = &'a Self;
+    type IndexRef<'a> = &'a Self;
 
     fn construct_for_benchmark(config: &Config, _texts: Option<Vec<Vec<u8>>>) -> Self {
         let build_args = fm_index::FmBuildArgs {
@@ -42,16 +42,16 @@ impl BenchmarkFmIndex for AwryFmIndex {
         Self::load(path).unwrap()
     }
 
-    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a> {
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::IndexRef<'a> {
         self
     }
 
-    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         let query = str::from_utf8(query).unwrap();
         index.count_string(query) as usize
     }
 
-    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_via_locate_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         let query = str::from_utf8(query).unwrap();
         index.locate_string(query).len()
     }

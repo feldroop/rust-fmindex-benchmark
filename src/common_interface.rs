@@ -5,19 +5,41 @@ use log::info;
 use crate::{BenchmarkResult, Config, SearchMode};
 
 pub trait BenchmarkFmIndex: Sized {
-    // this interface is a bit complicated, because the sview fmindex is essentially a reference to a slice and also is not Copy
-    type Stub<'a>
+    // this interface is a bit complicated, because the sview fmindex is essentially a reference to a slice, but is
+    // not trivially Copy-able like normal references.
+    // the IndexRef plays the role of a reference to the index, and for most libraries, it can simply be just that
+    type IndexRef<'a>
     where
         Self: 'a;
 
-    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a>;
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::IndexRef<'a>;
 
     fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self;
 
-    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize;
+    fn count_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize;
 
-    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize;
+    // implement only if there is functionality that makes searching multiple queries more efficient
+    fn count_many_for_benchmark<'a>(index: &Self::IndexRef<'a>, queries: &[Vec<u8>]) -> usize {
+        queries
+            .iter()
+            .map(|q| Self::count_for_benchmark(index, q))
+            .sum()
+    }
 
+    fn count_via_locate_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize;
+
+    // implement only if there is functionality that makes searching multiple queries more efficient
+    fn count_many_via_locate_for_benchmark<'a>(
+        index: &Self::IndexRef<'a>,
+        queries: &[Vec<u8>],
+    ) -> usize {
+        queries
+            .iter()
+            .map(|q| Self::count_via_locate_for_benchmark(index, q))
+            .sum()
+    }
+
+    // implement only if the library supports file IO of the FM-Index
     fn supports_file_io_for_benchmark(_config: &Config) -> bool {
         false
     }
@@ -38,6 +60,8 @@ pub trait BenchmarkFmIndex: Sized {
     fn supports_locate_for_benchmark() -> bool {
         true
     }
+
+    // from here on: do not implement these methods
 
     fn construct_or_load_for_benchmark(config: &Config) -> (Self, ConstructionMetrics) {
         let index_filepath = config.index_filepath();
@@ -73,14 +97,11 @@ pub trait BenchmarkFmIndex: Sized {
 
         for _ in 0..config.repeat_search {
             let start = std::time::Instant::now();
-            total_num_hits = 0;
 
-            for query in &queries {
-                total_num_hits += match config.search_mode {
-                    SearchMode::Count => Self::count_for_benchmark(&stub, query),
-                    SearchMode::Locate => Self::count_via_locate_for_benchmark(&stub, query),
-                };
-            }
+            total_num_hits = match config.search_mode {
+                SearchMode::Count => Self::count_many_for_benchmark(&stub, &queries),
+                SearchMode::Locate => Self::count_many_via_locate_for_benchmark(&stub, &queries),
+            };
 
             running_times_secs.push(start.elapsed().as_millis() as f64 / 1_000.0);
         }

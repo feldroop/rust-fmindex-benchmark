@@ -16,7 +16,7 @@ pub struct BioFmIndex<const R: usize> {
 }
 
 impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
-    type Stub<'a> = &'a SampledSuffixArray<Vec<u8>, Vec<usize>, Occ>;
+    type IndexRef<'a> = &'a SampledSuffixArray<Vec<u8>, Vec<usize>, Occ>;
 
     fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self {
         let mut text: Vec<_> = texts.unwrap().into_iter().flatten().collect();
@@ -68,11 +68,11 @@ impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
         }
     }
 
-    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a> {
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::IndexRef<'a> {
         &self.inner
     }
 
-    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         // loading index stub is essentially no-op
         let index_stub = FMIndex::new(index.bwt(), index.less(), index.occ());
 
@@ -84,7 +84,7 @@ impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
         }
     }
 
-    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_via_locate_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         // loading index stub is essentially  no-op
         let index_stub = FMIndex::new(index.bwt(), index.less(), index.occ());
 

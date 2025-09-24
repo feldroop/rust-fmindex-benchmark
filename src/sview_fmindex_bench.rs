@@ -18,7 +18,7 @@ pub struct SViewFMIndex<P, V> {
 }
 
 impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMIndex<P, V> {
-    type Stub<'a> = sview_fmindex::FmIndex<'a, P, Block3<V>, EncodingTable>;
+    type IndexRef<'a> = sview_fmindex::FmIndex<'a, P, Block3<V>, EncodingTable>;
 
     fn construct_for_benchmark(config: &Config, texts: Option<Vec<Vec<u8>>>) -> Self {
         let symbols: &[&[u8]] = &[b"A", b"C", b"G", b"T", b"N"];
@@ -70,15 +70,31 @@ impl<P: Position + 'static, V: Vector + 'static> BenchmarkFmIndex for SViewFMInd
         }
     }
 
-    fn as_stub_for_benchmark<'a>(&'a self) -> Self::Stub<'a> {
-        Self::Stub::load(&self.blob).unwrap()
+    fn as_stub_for_benchmark<'a>(&'a self) -> Self::IndexRef<'a> {
+        Self::IndexRef::load(&self.blob).unwrap()
     }
 
-    fn count_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         index.count(query).as_usize()
     }
 
-    fn count_via_locate_for_benchmark<'a>(index: &Self::Stub<'a>, query: &[u8]) -> usize {
+    fn count_via_locate_for_benchmark<'a>(index: &Self::IndexRef<'a>, query: &[u8]) -> usize {
         index.locate(query).len()
+    }
+
+    fn count_many_via_locate_for_benchmark<'a>(
+        index: &Self::IndexRef<'a>,
+        queries: &[Vec<u8>],
+    ) -> usize {
+        let mut buffer = Vec::new();
+        let mut sum = 0;
+
+        for query in queries {
+            index.locate_to_buffer(query, &mut buffer);
+            sum += buffer.len();
+            buffer.clear();
+        }
+
+        sum
     }
 }

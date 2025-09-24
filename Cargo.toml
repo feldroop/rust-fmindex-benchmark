@@ -12,8 +12,7 @@ serde = "1"
 serde_json = "1"
 strum = { version = "0.27", features = ["derive"] }
 
-# genedex = { version = "0.1.0", git = "https://github.com/feldroop/genedex", rev = "877f62c1ab52432e54e5a4ce2b9bd00e6f488873" }
-genedex = { version = "0.1.0", path = "../genedex" }
+genedex = { version = "0.2.0" }
 
 bio = "3"
 bincode = { version = "2", features = ["serde"] }
@@ -32,3 +31,6 @@ windows = { version = "0.62", features = [
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[profile.release]
+debug = true

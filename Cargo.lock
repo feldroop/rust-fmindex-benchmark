@@ -675,7 +675,9 @@ dependencies = [
 
 [[package]]
 name = "genedex"
-version = "0.1.0"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b260af999ffedf9163b1deccf0c3e9753f238e95e74f1bca456b747953971657"
 dependencies = [
  "bytemuck",
  "libsais",
