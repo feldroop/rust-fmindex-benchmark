@@ -2,7 +2,7 @@
 
 ## Background
 
-The [FM-Index] is a full-text index data structure that allows efficiently counting and retrieving the positions of all occurrenes of short sequences in very large texts. It is widely used in sequence analysis and bioinformatics. This document provides a thorough comparison of all of the existing Rust implementations of the FM-Index. **Bias alert:** I am the author of [`genedex`].
+The [FM-Index] is a full-text index data structure that allows efficiently counting and retrieving the positions of all occurrenes of (short) sequences in very large texts. It is widely used in sequence analysis and bioinformatics. This document provides a thorough comparison of all of the existing Rust implementations of the FM-Index. **Bias alert:** I am the author of [`genedex`].
 
 ## Existing Libraries
 
@@ -56,9 +56,19 @@ Build the FM-Index and then search queries, either by only counting occurrences,
 
 ## Main Results
 
-Coming soon!
+### `hg38` Construction
 
-All of the results can be found [here](#detailed-results)
+The running time and peak memory usage of constructing the FM-Index for the `hg38` input using the different implementations can be seen below. For `genedex`, results are shown with and without threading, as well as for different memoriy configurations.
+
+TODO
+
+### `hg38` Locate
+
+The running time of searching the queries in the `hg38` input and memory usage of the index can be seen below.
+
+TODO
+
+All of the detailed results can be found [below](#detailed-results).
 
 ## Limitations
 
@@ -81,6 +91,8 @@ Support for other input texts might be added in the future. If you're familiar w
 Adding a library to the benchmark should not be too difficult. First, add it as a dependency and implement the `BenchmarkFmIndex` trait from `common_interface.rs`. You can use the implementations for the other libraries as examples. Then, add a new variant to the `Library` enum in `main.rs` and wire it to the `BenchmarkFmIndex` implementation of your libary in the `match` statement that you just broke. Finally, you need to choose your favorite color and register the library in the `plots/main.py` script.
 
 ## Detailed Results
+
+i32, double hg38, hg38 IO construction count locate
 
 TODO
 
