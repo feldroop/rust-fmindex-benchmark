@@ -1,4 +1,4 @@
-# Rust FM-Index Benchmark
+# Rust FM-Index Benchmark📋
 
 ## Background
 
@@ -34,25 +34,27 @@ Libraries were gathered from [crates.io](crates.io) searches of "fmindex" and "f
 
 ## Benchmark Setup
 
-### Input Texts
+### Input data
 
-These different inputs were used in the benchmark:
+These different input texts to be indexed are used in the benchmark:
 
 * [`hg38`]: The human reference genome with a total size of roughly 3.3 GB. Implementations can use `u32` to store text positions.
 * `i32`: The first 20 records of the `hg38` file with a total size of roughly 2 GB. This allows implementation to use `i32` to store text positions. This is mainly useful for interop with C-based suffix array construction algorithms.
 * `double-hg38`: The human genome concatenated with its reverse complement. A total size of 6.6 GB, which forces implementations to use 64 bit ints to store text positions (or use bitcompressed ints).
 
-### Input Queries
+As queries, a sample of (quite short) Illumina [reads from SRA], truncated to length 50 is used. Truncating to this length makes sure that for many of the queries, at least one occurrence exists in the text. The summed up length of all queries is 377 MB.
 
-A sample of (quite short) Illumina [reads from SRA], truncated to length 50. This makes sure that for most of the queries, at least one occurrence exists in the text. The combined size of all queries is 377 MB.
+### Benchmarked Functionality and Parameters
+
+First, the FM-Index for the given input texts is constructed. If the library doesn't support multiple texts, the texts are concatenated. The suffix array sampling rate is set to 4 for all of the libraries (retain 1/4 of all entries). If the library supports building a precomputed lookup table, the depth 10 is chosen. 
+
+Then, the queries are searched, either by only counting occurrences, or by also locating the positions of occurrences. (In this benchmarks, there was no large difference between the count and locate runs. Therefore, only the results for locating are displayed in this README and the other results can be found in the `plots/img` folder.)
+
+If the library supports it, the time to write the index to disk and then it read back into memory is also measured.
 
 ### Hardware
 
 Intel(R) Xeon(R) Gold 6348 server CPU @ 2.60GHz with two sockets of 28 cores, AVX512 support and 1 TB of RAM.
-
-### Task
-
-Build the FM-Index and then search queries, either by only counting occurrences, or by also locating them. If the library supports it, the time to write the index to disk and then it read back into memory is also measured.
 
 ## Main Results
 
@@ -84,7 +86,7 @@ data/
     reads.fastq <- renamed downloaded SRA reads
 ```
 
-Support for other input texts might be added in the future. If you're familiar with the `just` command runner, you can simply run `just` and then execute `main.py` from the `plots` folder (requires `matplotlib`). Otherwise you can build and run the executable using cargo and run the commands from the `justfile` manually.
+Support for other input texts could easily be added in the future. If you're familiar with the `just` command runner, you can simply run `just` and then execute `main.py` from the `plots` folder (requires `matplotlib`). Otherwise you can build and run the executable using cargo and run the commands from the `justfile` manually.
 
 ## Add a Library to the Benchmark
 
@@ -92,7 +94,43 @@ Adding a library to the benchmark should not be too difficult. First, add it as 
 
 ## Detailed Results
 
-i32, double hg38, hg38 IO construction count locate
+### `i32` Construction
+
+TODO
+
+### `i32` Locate
+
+TODO
+
+### `i32` Count
+
+TODO
+
+### `i32` File IO
+
+TODO
+
+### `hg38` Count
+
+TODO
+
+### `hg38` File IO
+
+TODO
+
+### `double-hg38` Construction
+
+TODO
+
+### `double-hg38` Locate
+
+TODO
+
+### `double-hg38` Count
+
+TODO
+
+### `double-hg38` File IO
 
 TODO
 
