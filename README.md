@@ -102,15 +102,7 @@ TODO
 
 TODO
 
-### `i32` Count
-
-TODO
-
 ### `i32` File IO
-
-TODO
-
-### `hg38` Count
 
 TODO
 
@@ -123,10 +115,6 @@ TODO
 TODO
 
 ### `double-hg38` Locate
-
-TODO
-
-### `double-hg38` Count
 
 TODO
 
