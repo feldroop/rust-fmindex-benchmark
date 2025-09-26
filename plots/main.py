@@ -10,8 +10,8 @@ library_name_to_info = {
     "Awry": ("awry", "grey", "grey"),
     "BioSmall": ("bio small", "limegreen", "limegreen"),
     "BioLarge": ("bio large", "forestgreen", "forestgreen"),
-    "FmIndexSingle": ("fmindex single text", "olive", "olive"),
-    "FmIndexMulti": ("fmindex multi text", "darkkhaki", "darkkhaki"),
+    "FmIndexSingle": ("fmindex single text", "darkkhaki", "darkkhaki"),
+    "FmIndexMulti": ("fmindex multi text", "olive", "olive"),
     "SviewFmIndexVec32": ("sview vec32", "tomato", "tomato"),
     "SviewFmIndexVec128": ("sview vec128", "orange", "orange"),
 }
@@ -193,7 +193,7 @@ def duo_plot(
         bbox_to_anchor=(0, 0.75, 1, 0.2),
         bbox_transform=fig.transFigure, 
         loc="lower center", 
-        ncol = math.floor(n / 3)
+        ncol = 3
     )
 
     fig.tight_layout(rect=[0, 0, 1, 0.75])

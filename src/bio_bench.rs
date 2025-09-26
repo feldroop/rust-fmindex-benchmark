@@ -31,7 +31,9 @@ impl<const R: usize> BenchmarkFmIndex for BioFmIndex<R> {
 
         // let rank_alphabet = alphabets::Alphabet::new([0, 1, 2, 3, 4, 5]);
 
-        let occ_sampling_rate = (R * config.suffix_array_sampling_rate * alphabet.len()) as u32;
+        // could make the sampling rate dependent on the suffix array sampling rate
+        // let occ_sampling_rate = (R * config.suffix_array_sampling_rate * alphabet.len()) as u32;
+        let occ_sampling_rate = R as u32;
         let suffix_array = suffix_array::suffix_array(&text);
         let bwt = bwt::bwt(&text, &suffix_array);
         let less = bwt::less(&bwt, &alphabet);

@@ -12,7 +12,7 @@ serde = "1"
 serde_json = "1"
 strum = { version = "0.27", features = ["derive"] }
 
-genedex = { version = "0.2.0" }
+genedex = { version = "0.2.2" }
 
 bio = "3"
 bincode = { version = "2", features = ["serde"] }
