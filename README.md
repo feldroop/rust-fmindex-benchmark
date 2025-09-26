@@ -62,13 +62,13 @@ Intel(R) Xeon(R) Gold 6348 server CPU @ 2.60GHz with two sockets of 28 cores, AV
 
 The running time and peak memory usage of constructing the FM-Index for the `hg38` input using the different implementations can be seen below. For `genedex`, results are shown with and without threading, as well as for different memoriy configurations.
 
-TODO
+<img src="plots/img/Construction-Hg38.svg" />
 
 ### `hg38` Locate
 
 The running time of searching the queries in the `hg38` input and memory usage of the index can be seen below.
 
-TODO
+<img src="plots/img/Locate-Hg38.svg" />
 
 All of the other results can be found [below](#detailed-results).
 
@@ -96,31 +96,31 @@ Adding a library to the benchmark should not be too difficult. First, add it as 
 
 ### `i32` Construction
 
-TODO
+<img src="plots/img/Construction-I32.svg" />
 
 ### `i32` Locate
 
-TODO
+<img src="plots/img/Locate-I32.svg" />
 
 ### `i32` File IO
 
-TODO
+<img src="plots/img/FileIO-I32.svg" />
 
 ### `hg38` File IO
 
-TODO
+<img src="plots/img/FileIO-Hg38.svg" />
 
 ### `double-hg38` Construction
 
-TODO
+<img src="plots/img/Construction-DoubleHg38.svg" />
 
 ### `double-hg38` Locate
 
-TODO
+<img src="plots/img/Locate-DoubleHg38.svg" />
 
 ### `double-hg38` File IO
 
-TODO
+<img src="plots/img/FileIO-DoubleHg38.svg" />
 
 [`awry`]: https://github.com/UM-Applied-Algorithms-Lab/AWRY
 [`bincode`]: https://sr.ht/~stygianentity/bincode/
